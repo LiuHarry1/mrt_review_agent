@@ -11,6 +11,7 @@ export interface Suggestion {
 export interface ReviewResponse {
   suggestions: Suggestion[]
   summary?: string
+  raw_content?: string
 }
 
 export type ConversationState = 'awaiting_mrt' | 'awaiting_checklist' | 'ready'
@@ -32,6 +33,7 @@ export interface ChatResponse {
 export interface ReviewPayload {
   mrt_content: string
   checklist?: ChecklistItem[]
+  system_prompt?: string
 }
 
 export interface ChatPayload {

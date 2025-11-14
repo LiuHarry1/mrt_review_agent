@@ -14,13 +14,14 @@ class MRTReviewService:
         self.llm_client = llm_client or CompletionClient()
 
     def review(self, request: ReviewRequest) -> ReviewResponse:
-        return self.review_with_checklist(request.mrt_content, request.checklist)
+        return self.review_with_checklist(request.mrt_content, request.checklist, request.system_prompt)
 
     def review_with_checklist(
         self,
         mrt_content: str,
         checklist_items: Optional[List[ChecklistItem]],
+        system_prompt: Optional[str] = None,
     ) -> ReviewResponse:
         checklist = resolve_checklist(checklist_items)
-        return self.llm_client.review(mrt_content, checklist)
+        return self.llm_client.review(mrt_content, checklist, system_prompt)
 

@@ -1,105 +1,76 @@
 from __future__ import annotations
 
+import logging
+import time
 from typing import List, Optional
 
 from ..config import get_config
 from ..schemas import ChecklistItem, ReviewResponse, Suggestion
 from .base_client import BaseLLMClient, DashScopeError
 
+logger = logging.getLogger(__name__)
+
 
 class CompletionClient(BaseLLMClient):
     """Client for LLM completion tasks (e.g., MRT review)."""
 
-    def review(self, mrt_content: str, checklist: List[ChecklistItem]) -> ReviewResponse:
+    def review(self, mrt_content: str, checklist: List[ChecklistItem], system_prompt: Optional[str] = None) -> ReviewResponse:
         """Review MRT content against checklist using LLM completion."""
         if not self.has_api_key:
-            print("no model api key")
+            logger.warning("No API key available, using heuristic review")
             return self._heuristic_review(mrt_content, checklist)
+
+        # Use custom system prompt if provided, otherwise use default
+        prompt = system_prompt if system_prompt is not None else self._config.system_prompt
+
+        model_name = self._config.llm_model
+        mrt_length = len(mrt_content)
+        checklist_count = len(checklist)
+        
+        logger.info(f"Starting LLM review request - Model: {model_name}, MRT length: {mrt_length} chars, Checklist items: {checklist_count}")
+        start_time = time.time()
 
         try:
             payload = {
-                "model": self._config.llm_model,
+                "model": model_name,
                 "messages": [
                     {
                         "role": "system",
-                        "content": self._config.system_prompt,
+                        "content": prompt,
                     },
                     {
                         "role": "user",
-                        "content": f"MRT 内容:\n{mrt_content}\n\nChecklist: {checklist}",
+                        "content": f"Review the following MRT against the checklist. Provide brief, concise suggestions only.\n\nMRT Content:\n{mrt_content}\n\nChecklist: {checklist}",
                     },
                 ],
+                "max_tokens": 1000,  # Limit response length for faster output
             }
 
+            logger.debug(f"Making API request to {self.base_url}/chat/completions")
             data = self._make_request("chat/completions", payload)
+            
+            elapsed_time = time.time() - start_time
+            response_length = len(data.get("choices", [{}])[0].get("message", {}).get("content", ""))
+            logger.info(f"LLM review completed successfully - Elapsed time: {elapsed_time:.2f}s, Response length: {response_length} chars")
+            
+        except DashScopeError as exc:
+            elapsed_time = time.time() - start_time
+            logger.error(f"LLM review failed after {elapsed_time:.2f}s - Error: {str(exc)}")
+            raise
         except Exception as exc:
-            if isinstance(exc, DashScopeError):
-                raise
+            elapsed_time = time.time() - start_time
+            logger.error(f"LLM review failed after {elapsed_time:.2f}s - Unexpected error: {str(exc)}", exc_info=True)
             raise DashScopeError(str(exc)) from exc
 
-        suggestions = self._parse_suggestions_from_llm(data, checklist)
-        summary = self._extract_summary(data)
-        return ReviewResponse(suggestions=suggestions, summary=summary)
+        # Extract raw content from model response
+        raw_content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        
+        # Return only raw content, no need to parse suggestions or summary
+        return ReviewResponse(suggestions=[], summary=None, raw_content=raw_content)
 
     def _heuristic_review(self, mrt_content: str, checklist: List[ChecklistItem]) -> ReviewResponse:
         """Fallback heuristic review when API key is not available."""
-        text = mrt_content.lower()
-        suggestions: List[Suggestion] = []
-
-        # Get keyword mapping from configuration
-        keyword_map = self._config.keyword_mapping
-
-        for item in checklist:
-            candidates = keyword_map.get(item.id)
-            if candidates:
-                if not any(keyword.lower() in text for keyword in candidates):
-                    suggestions.append(
-                        Suggestion(
-                            checklist_id=item.id,
-                            message=f"未检测到 `{item.description}` 的相关内容，请补充。",
-                        )
-                    )
-            else:
-                # For checklist items without keyword mapping, use generic message
-                suggestions.append(
-                    Suggestion(
-                        checklist_id=item.id,
-                        message=f"请确认 `{item.description}` 的内容已在 MRT 中体现。",
-                    )
-                )
-
-        # Apply additional suggestions from configuration
-        for additional in self._config.additional_suggestions:
-            keywords = additional.get("keywords", [])
-            if keywords and not any(keyword.lower() in text for keyword in keywords):
-                suggestions.append(
-                    Suggestion(
-                        checklist_id=additional["id"],
-                        message=additional["message"],
-                    )
-                )
-
-        summary = (
-            f"共识别到 {len(suggestions)} 条改进建议。" if suggestions else "未发现明显问题。继续保持当前质量。"
-        )
-        return ReviewResponse(suggestions=suggestions, summary=summary)
-
-    @staticmethod
-    def _parse_suggestions_from_llm(data, checklist: List[ChecklistItem]) -> List[Suggestion]:  # pragma: no cover
-        """Parse suggestions from LLM response."""
-        suggestions: List[Suggestion] = []
-        # OpenAI-compatible format: choices[0].message.content
-        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-        for item in checklist:
-            if item.id in text:
-                suggestions.append(Suggestion(checklist_id=item.id, message=f"请检查 {item.description}"))
-        return suggestions or [
-            Suggestion(checklist_id="LLM-FALLBACK", message="未能解析模型输出，请人工确认。")
-        ]
-
-    @staticmethod
-    def _extract_summary(data) -> Optional[str]:  # pragma: no cover
-        """Extract summary from LLM response."""
-        # OpenAI-compatible format: choices[0].message.content
-        return data.get("choices", [{}])[0].get("message", {}).get("content")
+        # Simple fallback: return a message indicating API key is not available
+        raw_content = "API key is not available. Please configure your API key to use the review feature."
+        return ReviewResponse(suggestions=[], summary=None, raw_content=raw_content)
 

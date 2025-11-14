@@ -54,29 +54,36 @@ class Config:
             ]
         return self._default_checklist
 
-    @property
-    def keyword_mapping(self) -> Dict[str, List[str]]:
-        """Get keyword mapping for heuristic review."""
-        mapping = self._config.get("keyword_mapping", {})
-        result: Dict[str, List[str]] = {}
-        for checklist_id, keywords in mapping.items():
-            if isinstance(keywords, list):
-                result[str(checklist_id)] = [str(kw) for kw in keywords]
-        return result
 
     @property
-    def additional_suggestions(self) -> List[Dict[str, Any]]:
-        """Get additional suggestions configuration."""
-        suggestions = self._config.get("additional_suggestions", [])
-        result: List[Dict[str, Any]] = []
-        for suggestion in suggestions:
-            if isinstance(suggestion, dict) and "id" in suggestion and "keywords" in suggestion and "message" in suggestion:
-                result.append({
-                    "id": str(suggestion["id"]),
-                    "keywords": [str(kw) for kw in suggestion["keywords"]] if isinstance(suggestion["keywords"], list) else [],
-                    "message": str(suggestion["message"]),
-                })
-        return result
+    def config_path(self) -> str:
+        """Get the path to the configuration file."""
+        return os.getenv("MRT_REVIEW_CONFIG", str(Path(__file__).parent / "config.yaml"))
+
+    def save_config(self, system_prompt: str, checklist: List[ChecklistItem]) -> None:
+        """Save system prompt and checklist to configuration file."""
+        config_file = Path(self.config_path)
+        
+        # Load existing config to preserve other settings
+        existing_config = self._config.copy()
+        
+        # Update system prompt
+        if "llm" not in existing_config:
+            existing_config["llm"] = {}
+        existing_config["llm"]["system_prompt"] = system_prompt
+        
+        # Update checklist
+        existing_config["default_checklist"] = [
+            {"id": item.id, "description": item.description} for item in checklist
+        ]
+        
+        # Write back to file
+        with open(config_file, "w", encoding="utf-8") as f:
+            yaml.dump(existing_config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        
+        # Reload config
+        self._config = existing_config
+        self._default_checklist = None  # Reset cache
 
 
 # Global configuration instance

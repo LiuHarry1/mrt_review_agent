@@ -22,11 +22,16 @@ class ReviewRequest(BaseModel):
         default=None,
         description="Optional custom checklist to use for the review. If omitted, the default checklist is applied.",
     )
+    system_prompt: Optional[str] = Field(
+        default=None,
+        description="Optional custom system prompt. If omitted, the default system prompt is used.",
+    )
 
 
 class ReviewResponse(BaseModel):
     suggestions: List[Suggestion] = Field(..., description="List of suggestions derived from the review")
     summary: Optional[str] = Field(default=None, description="Optional overall summary of the review")
+    raw_content: Optional[str] = Field(default=None, description="Raw content output from the model")
 
 
 class ConversationState(str, Enum):
@@ -70,3 +75,8 @@ class ChatResponse(BaseModel):
     suggestions: Optional[List[Suggestion]] = None
     summary: Optional[str] = None
     history: List[ChatTurn] = Field(default_factory=list)
+
+
+class ConfigUpdateRequest(BaseModel):
+    system_prompt: str = Field(..., description="System prompt to save")
+    checklist: List[ChecklistItem] = Field(..., description="Checklist items to save")

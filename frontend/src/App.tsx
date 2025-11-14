@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DragEvent, FormEvent } from 'react'
+import ReactMarkdown from 'react-markdown'
 import './App.css'
 import { reviewMrt, sendChatMessage } from './api'
-import type { ChatResponse, ConversationState, ReviewResponse, Suggestion } from './types'
+import type { ChatResponse, ConversationState, ChecklistItem, ReviewResponse, Suggestion } from './types'
+import { ChecklistEditorModal } from './ChecklistEditorModal'
 
 type TabKey = 'review' | 'chat'
 
@@ -12,12 +14,15 @@ const CHAT_STORAGE_KEY = 'mrt-review-chat-session'
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('review')
+  const [sidebarVisible, setSidebarVisible] = useState(true)
 
   const [mrtContent, setMrtContent] = useState('')
-  const [checklistRaw, setChecklistRaw] = useState('')
   const [reviewResult, setReviewResult] = useState<ReviewResponse | null>(null)
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewAlert, setReviewAlert] = useState<Alert | null>(null)
+  const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false)
+  const [customSystemPrompt, setCustomSystemPrompt] = useState<string | undefined>(undefined)
+  const [customChecklist, setCustomChecklist] = useState<ChecklistItem[] | undefined>(undefined)
 
   const [chatSessionId, setChatSessionId] = useState<string | undefined>()
   const [chatMessage, setChatMessage] = useState('')
@@ -30,6 +35,7 @@ function App() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -70,6 +76,13 @@ function App() {
     return () => textarea.removeEventListener('input', adjustHeight)
   }, [chatMessage])
 
+  // Auto scroll to bottom when messages update
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [chatHistory, chatLoading])
+
   const handleReviewSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setReviewAlert(null)
@@ -77,21 +90,26 @@ function App() {
     setReviewLoading(true)
 
     try {
-      const checklist = checklistRaw.trim() ? JSON.parse(checklistRaw) : undefined
       const payload = {
         mrt_content: mrtContent,
-        checklist,
+        checklist: customChecklist,
+        system_prompt: customSystemPrompt,
       }
 
       const response = await reviewMrt(payload)
       setReviewResult(response)
-      setReviewAlert({ type: 'success', message: '审查完成' })
+      setReviewAlert({ type: 'success', message: 'Review completed' })
     } catch (error) {
-      const message = error instanceof Error ? error.message : '审查失败'
+      const message = error instanceof Error ? error.message : 'Review failed'
       setReviewAlert({ type: 'error', message })
     } finally {
       setReviewLoading(false)
     }
+  }
+
+  const handleChecklistSave = (systemPrompt: string, checklist: ChecklistItem[]) => {
+    setCustomSystemPrompt(systemPrompt)
+    setCustomChecklist(checklist)
   }
 
   const persistChat = (response: ChatResponse) => {
@@ -120,7 +138,7 @@ function App() {
         const fileNames = oversizedFiles.map(f => f.name).join(', ')
         setChatAlert({ 
           type: 'error', 
-          message: `文件过大（超过1MB）：${fileNames}。请上传较小的文件。` 
+          message: `File too large (over 1MB): ${fileNames}. Please upload smaller files.` 
         })
         setChatLoading(false)
         return
@@ -133,7 +151,7 @@ function App() {
             const content = await file.text()
             return { name: file.name, content }
           } catch (error) {
-            throw new Error(`读取文件 ${file.name} 失败：${error instanceof Error ? error.message : '未知错误'}`)
+            throw new Error(`Failed to read file ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
           }
         })
       )
@@ -149,12 +167,11 @@ function App() {
       setChatHistory(response.history)
       setChatSuggestions(response.suggestions)
       setChatSummary(response.summary)
-      setChatAlert({ type: 'success', message: '文件已上传并处理' })
       setChatMessage('')
       setUploadedFiles([])
       persistChat(response)
     } catch (error) {
-      const message = error instanceof Error ? error.message : '文件上传失败'
+      const message = error instanceof Error ? error.message : 'File upload failed'
       setChatAlert({ type: 'error', message })
     } finally {
       setChatLoading(false)
@@ -171,7 +188,7 @@ function App() {
     }
 
     if (!chatMessage.trim()) {
-      setChatAlert({ type: 'error', message: '请输入要发送的内容或上传文件。' })
+      setChatAlert({ type: 'error', message: 'Please enter content to send or upload a file.' })
       return
     }
 
@@ -188,11 +205,10 @@ function App() {
       setChatHistory(response.history)
       setChatSuggestions(response.suggestions)
       setChatSummary(response.summary)
-      setChatAlert({ type: 'success', message: '消息已发送' })
       setChatMessage('')
       persistChat(response)
     } catch (error) {
-      const message = error instanceof Error ? error.message : '发送失败'
+      const message = error instanceof Error ? error.message : 'Send failed'
       setChatAlert({ type: 'error', message })
     } finally {
       setChatLoading(false)
@@ -235,22 +251,22 @@ function App() {
       if (oversizedFiles.length > 0 || invalidTypeFiles.length > 0) {
         const warnings = []
         if (oversizedFiles.length > 0) {
-          warnings.push(`文件过大（>1MB）：${oversizedFiles.map(f => f.name).join(', ')}`)
+          warnings.push(`File too large (>1MB): ${oversizedFiles.map(f => f.name).join(', ')}`)
         }
         if (invalidTypeFiles.length > 0) {
-          warnings.push(`不支持的文件格式：${invalidTypeFiles.map(f => f.name).join(', ')}`)
+          warnings.push(`Unsupported file format: ${invalidTypeFiles.map(f => f.name).join(', ')}`)
         }
-        setChatAlert({ type: 'error', message: warnings.join('；') })
+        setChatAlert({ type: 'error', message: warnings.join('; ') })
       }
     } else if (files.length > 0) {
       const reasons = []
       if (oversizedFiles.length > 0) {
-        reasons.push('文件过大（超过1MB）')
+        reasons.push('File too large (over 1MB)')
       }
       if (invalidTypeFiles.length > 0) {
-        reasons.push('不支持的文件格式')
+        reasons.push('Unsupported file format')
       }
-      setChatAlert({ type: 'error', message: `文件验证失败：${reasons.join('，')}。只支持文本文件：.txt, .md, .json，每个文件不超过1MB。` })
+      setChatAlert({ type: 'error', message: `File validation failed: ${reasons.join(', ')}. Only text files are supported: .txt, .md, .json, each file not exceeding 1MB.` })
     }
   }
 
@@ -279,22 +295,22 @@ function App() {
         if (oversizedFiles.length > 0 || invalidTypeFiles.length > 0) {
           const warnings = []
           if (oversizedFiles.length > 0) {
-            warnings.push(`文件过大（>1MB）：${oversizedFiles.map(f => f.name).join(', ')}`)
+            warnings.push(`File too large (>1MB): ${oversizedFiles.map(f => f.name).join(', ')}`)
           }
           if (invalidTypeFiles.length > 0) {
-            warnings.push(`不支持的文件格式：${invalidTypeFiles.map(f => f.name).join(', ')}`)
+            warnings.push(`Unsupported file format: ${invalidTypeFiles.map(f => f.name).join(', ')}`)
           }
-          setChatAlert({ type: 'error', message: warnings.join('；') })
+          setChatAlert({ type: 'error', message: warnings.join('; ') })
         }
       } else {
         const reasons = []
         if (oversizedFiles.length > 0) {
-          reasons.push('文件过大（超过1MB）')
+          reasons.push('File too large (over 1MB)')
         }
         if (invalidTypeFiles.length > 0) {
-          reasons.push('不支持的文件格式')
+          reasons.push('Unsupported file format')
         }
-        setChatAlert({ type: 'error', message: `文件验证失败：${reasons.join('，')}。只支持文本文件：.txt, .md, .json，每个文件不超过1MB。` })
+        setChatAlert({ type: 'error', message: `File validation failed: ${reasons.join(', ')}. Only text files are supported: .txt, .md, .json, each file not exceeding 1MB.` })
       }
     }
     // Reset input to allow selecting same file again
@@ -320,23 +336,74 @@ function App() {
     }
   }
 
-  const renderSuggestions = (suggestions: Suggestion[]) => (
-    <ul className="suggestions">
-      {suggestions.map((item) => (
-        <li key={`${item.checklist_id}-${item.message}`}>
-          <strong>{item.checklist_id}</strong>
-          <span>{item.message}</span>
-        </li>
-      ))}
-    </ul>
-  )
 
   return (
     <div className="app">
+      {/* Top Bar */}
+      <header className={`top-bar ${sidebarVisible ? 'with-sidebar' : 'no-sidebar'}`}>
+        <div className="top-bar-left">
+          {!sidebarVisible && (
+            <button
+              type="button"
+              className="sidebar-toggle-top"
+              onClick={() => setSidebarVisible(true)}
+              title="Show menu"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          )}
+          {activeTab === 'chat' && (
+            <button type="button" className="new-chat-btn-top" onClick={resetChatSession}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>New Chat</span>
+            </button>
+          )}
+        </div>
+        <div className="top-bar-right">
+          <div className="user-info">
+            <div className="user-avatar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
+            <div className="user-details">
+              <span className="user-name">Dummy User</span>
+              <span className="user-role">Test Reviewer</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${sidebarVisible ? 'visible' : 'hidden'}`}>
         <div className="sidebar-header">
-          <h1 className="app-title">MRT Review Agent</h1>
+          <div className="sidebar-brand">
+            <div className="brand-logo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+            </div>
+            <div className="brand-name">MRT Review Agent</div>
+          </div>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            onClick={() => setSidebarVisible(false)}
+            title="Hide menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
         <nav className="sidebar-nav">
           <button
@@ -344,66 +411,74 @@ function App() {
             className={`nav-item ${activeTab === 'chat' ? 'active' : ''}`}
             onClick={() => setActiveTab('chat')}
           >
-            <span className="nav-icon">💬</span>
-            <span className="nav-text">智能对话</span>
+            <span className="nav-text">Chat Review</span>
           </button>
           <button
             type="button"
             className={`nav-item ${activeTab === 'review' ? 'active' : ''}`}
             onClick={() => setActiveTab('review')}
           >
-            <span className="nav-icon">📋</span>
-            <span className="nav-text">传统审查</span>
+            <span className="nav-text">Quick Review</span>
           </button>
         </nav>
       </aside>
 
       {/* Main Content */}
-      <main className="main-content">
+      <main className={`main-content ${sidebarVisible ? 'with-sidebar' : 'no-sidebar'}`}>
         {activeTab === 'review' && (
           <section className="review-container">
             <div className="review-header">
-              <h2>传统审查模式</h2>
-              <p className="review-subtitle">一次性提交 MRT 内容和 Checklist 进行审查</p>
+              <div className="review-header-top">
+                <div className="review-title-section">
+                  <h2>Quick Review</h2>
+                  <p className="review-subtitle">
+                    Get instant AI-powered review results. Paste your MRT content and receive comprehensive feedback.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="edit-checklist-btn"
+                  onClick={() => setIsChecklistModalOpen(true)}
+                  title="Edit Checklist and System Prompt"
+                >
+                  <span>Configure</span>
+                </button>
+              </div>
             </div>
             <form onSubmit={handleReviewSubmit} className="review-form">
               <div className="form-group">
                 <label className="form-label">
-                  <span className="label-text">MRT 内容</span>
+                  <span className="label-text">MRT Test Case</span>
                   <span className="label-required">*</span>
                 </label>
                 <textarea
                   required
                   value={mrtContent}
                   onChange={(event) => setMrtContent(event.target.value)}
-                  placeholder="请粘贴完整的 MRT 测试用例..."
+                  placeholder="Paste your complete MRT test case content here..."
                   className="form-textarea"
                 />
+                <p className="form-hint">The AI will review your test case against the configured checklist and provide improvement suggestions.</p>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">
-                  <span className="label-text">自定义 Checklist</span>
-                  <span className="label-optional">(可选，JSON 数组格式)</span>
-                </label>
-                <textarea
-                  value={checklistRaw}
-                  onChange={(event) => setChecklistRaw(event.target.value)}
-                  placeholder='[{"id":"CHK-001","description":"..."}]'
-                  className="form-textarea"
-                />
+              <div className="form-actions">
+                <button type="submit" disabled={reviewLoading} className="submit-button">
+                  {reviewLoading ? (
+                    <>
+                      <div className="loading-spinner small"></div>
+                      <span>Reviewing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 11l3 3L22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                      </svg>
+                      <span>Start Review</span>
+                    </>
+                  )}
+                </button>
               </div>
-
-              <button type="submit" disabled={reviewLoading} className="submit-button">
-                {reviewLoading ? (
-                  <>
-                    <div className="loading-spinner small"></div>
-                    <span>审查中...</span>
-                  </>
-                ) : (
-                  <span>开始审查</span>
-                )}
-              </button>
 
               {reviewAlert && (
                 <div className={`alert-message ${reviewAlert.type}`}>
@@ -413,69 +488,44 @@ function App() {
 
               {reviewResult && (
                 <div className="review-results">
-                  {reviewResult.summary && (
-                    <div className="result-summary">
-                      <div className="result-summary-header">
-                        <span>📊</span>
-                        <span>审查摘要</span>
-                      </div>
-                      <p>{reviewResult.summary}</p>
-                    </div>
-                  )}
-                  {reviewResult.suggestions.length > 0 ? (
-                    <div className="result-suggestions">
-                      <div className="result-suggestions-header">
-                        <span>💡</span>
-                        <span>改进建议 ({reviewResult.suggestions.length})</span>
-                      </div>
-                      {renderSuggestions(reviewResult.suggestions)}
-                    </div>
-                  ) : (
-                    <div className="result-empty">
-                      <p>✅ 未发现改进建议，MRT 内容质量良好！</p>
-                    </div>
-                  )}
+                  <div className="result-markdown">
+                    <ReactMarkdown>
+                      {reviewResult.raw_content || reviewResult.summary || 'No content available'}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </form>
+
+            <ChecklistEditorModal
+              isOpen={isChecklistModalOpen}
+              onClose={() => setIsChecklistModalOpen(false)}
+              onSave={handleChecklistSave}
+              initialSystemPrompt={customSystemPrompt}
+              initialChecklist={customChecklist}
+            />
           </section>
         )}
 
         {activeTab === 'chat' && (
           <section className="chat-container">
-            {/* Chat Header */}
-            <div className="chat-top-bar">
-              <div className="chat-title-section">
-                <h2 className="chat-title">智能对话审查</h2>
-                <p className="chat-subtitle">上传文件或输入内容，AI 助手会帮您审查 MRT</p>
-              </div>
-              <button type="button" className="new-chat-btn" onClick={resetChatSession}>
-                <span>🔄</span>
-                <span>新对话</span>
-              </button>
-            </div>
-
             {/* Chat Messages Area */}
             <div className="chat-messages-wrapper">
               {chatHistory.length === 0 ? (
                 <div className="empty-chat-state">
-                  <div className="empty-chat-icon">🤖</div>
-                  <h3 className="empty-chat-title">开始新的对话</h3>
+                  <h3 className="empty-chat-title">Start a New Conversation</h3>
                   <p className="empty-chat-desc">
-                    上传 MRT 文件或输入内容，AI 助手会帮您进行审查
+                    Upload MRT files or enter content, AI assistant will help you review
                   </p>
                   <div className="empty-chat-tips">
                     <div className="tip-item">
-                      <span className="tip-icon">📎</span>
-                      <span>支持拖拽上传文件</span>
+                      <span>Support drag and drop file upload</span>
                     </div>
                     <div className="tip-item">
-                      <span className="tip-icon">💡</span>
-                      <span>默认作为 MRT 文件处理</span>
+                      <span>Processed as MRT file by default</span>
                     </div>
                     <div className="tip-item">
-                      <span className="tip-icon">📝</span>
-                      <span>可修改和查看 checklist</span>
+                      <span>Can modify and view checklist</span>
                     </div>
                   </div>
                 </div>
@@ -483,17 +533,19 @@ function App() {
                 <div className="chat-messages">
                   {chatHistory.map((turn, index) => (
                     <div key={`${turn.role}-${index}`} className={`message-wrapper ${turn.role}`}>
-                      <div className="message-avatar">
-                        {turn.role === 'assistant' ? '🤖' : '👤'}
-                      </div>
                       <div className="message-content">
-                        <div className="message-bubble">{turn.content}</div>
+                        <div className="message-bubble">
+                          {turn.role === 'assistant' ? (
+                            <ReactMarkdown>{turn.content}</ReactMarkdown>
+                          ) : (
+                            <div style={{ whiteSpace: 'pre-wrap' }}>{turn.content}</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
                   {chatLoading && (
                     <div className="message-wrapper assistant">
-                      <div className="message-avatar">🤖</div>
                       <div className="message-content">
                         <div className="message-bubble typing-indicator">
                           <span></span>
@@ -503,36 +555,21 @@ function App() {
                       </div>
                     </div>
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
 
               {(chatSummary || (chatSuggestions && chatSuggestions.length > 0)) && chatHistory.length > 0 && (
                 <div className="chat-results">
-                  {chatSummary && (
-                    <div className="summary-card">
-                      <div className="summary-header">
-                        <span className="summary-icon">📊</span>
-                        <span>审查摘要</span>
-                      </div>
-                      <p className="summary-text">{chatSummary}</p>
-                    </div>
-                  )}
-                  {chatSuggestions && chatSuggestions.length > 0 && (
-                    <div className="suggestions-card">
-                      <div className="suggestions-header">
-                        <span className="suggestions-icon">💡</span>
-                        <span>改进建议 ({chatSuggestions.length})</span>
-                      </div>
-                      <div className="suggestions-list">
-                        {chatSuggestions.map((item, idx) => (
-                          <div key={`${item.checklist_id}-${idx}`} className="suggestion-item">
-                            <span className="suggestion-id">{item.checklist_id}</span>
-                            <span className="suggestion-text">{item.message}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="result-markdown">
+                    <ReactMarkdown>
+                      {`${chatSummary ? `## Review Summary\n\n${chatSummary}\n\n` : ''}${chatSuggestions && chatSuggestions.length > 0
+                        ? `## Improvement Suggestions (${chatSuggestions.length})\n\n${chatSuggestions
+                            .map((item) => `- **${item.checklist_id}**: ${item.message}`)
+                            .join('\n')}\n`
+                        : ''}`}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               )}
             </div>
@@ -549,7 +586,6 @@ function App() {
                   {uploadedFiles.map((file, index) => (
                     <div key={index} className="file-preview-bar">
                       <div className="file-info">
-                        <span className="file-icon">📎</span>
                         <span className="file-name">{file.name}</span>
                         <span className="file-size">
                           {(file.size / 1024).toFixed(1)} KB
@@ -559,7 +595,7 @@ function App() {
                         type="button"
                         onClick={() => removeFile(index)}
                         className="file-remove-btn"
-                        title="移除文件"
+                        title="Remove file"
                       >
                         ×
                       </button>
@@ -568,36 +604,25 @@ function App() {
                 </div>
               )}
               <form onSubmit={handleChatSubmit} className="chat-input-form">
-                <div className="input-wrapper">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    onChange={handleFileSelect}
-                    style={{ display: 'none' }}
-                    accept=".txt,.md,.json,.text"
-                    multiple
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="attach-button"
-                    title="上传文件"
-                    disabled={chatLoading}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                    </svg>
-                  </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  style={{ display: 'none' }}
+                  accept=".txt,.md,.json,.text"
+                  multiple
+                />
+                <div className="chat-input-wrapper">
                   <textarea
                     ref={textareaRef}
                     value={chatMessage}
                     onChange={(event) => setChatMessage(event.target.value)}
                     placeholder={
                       isDragOver
-                        ? '松开以上传文件...'
-                        : '输入消息或拖拽文件上传...'
+                        ? 'Release to upload file...'
+                        : 'Enter message or drag and drop file to upload...'
                     }
-                    rows={1}
+                    rows={3}
                     className="chat-textarea"
                     disabled={chatLoading}
                     onKeyDown={(e) => {
@@ -609,21 +634,34 @@ function App() {
                       }
                     }}
                   />
-                  <button
-                    type="submit"
-                    disabled={chatLoading || (!chatMessage.trim() && uploadedFiles.length === 0)}
-                    className="send-button"
-                    title="发送 (Enter)"
-                  >
-                    {chatLoading ? (
-                      <div className="loading-spinner"></div>
-                    ) : (
+                  <div className="chat-input-actions">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="attach-button"
+                      title="Upload file"
+                      disabled={chatLoading}
+                    >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                       </svg>
-                    )}
-                  </button>
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={chatLoading || (!chatMessage.trim() && uploadedFiles.length === 0)}
+                      className="send-button"
+                      title="Send (Enter)"
+                    >
+                      {chatLoading ? (
+                        <div className="loading-spinner"></div>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13"></line>
+                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 {chatAlert && (
                   <div className={`alert-toast ${chatAlert.type}`}>
@@ -634,9 +672,8 @@ function App() {
               {isDragOver && (
                 <div className="drag-overlay">
                   <div className="drag-overlay-inner">
-                    <div className="drag-icon">📎</div>
-                    <p className="drag-text">松开以上传文件</p>
-                    <p className="drag-hint">默认作为 MRT 文件处理</p>
+                    <p className="drag-text">Release to upload file</p>
+                    <p className="drag-hint">Processed as MRT file by default</p>
                   </div>
                 </div>
               )}

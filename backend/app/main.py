@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from .config import get_config
 from .llm import ChatbotClient, CompletionClient, DashScopeError
-from .schemas import ChatRequest, ChatResponse, ChecklistItem, ReviewRequest, ReviewResponse
+from .schemas import ChatRequest, ChatResponse, ConfigUpdateRequest, ReviewRequest, ReviewResponse
 from .services.chat_agent import MRTReviewAgent
 from .services.review_service import MRTReviewService
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 app = FastAPI(title="MRT Review Agent", version="1.0.0")
 
@@ -29,6 +39,30 @@ agent = MRTReviewAgent(chatbot_client=chatbot_client)
 @app.get("/health")
 def health_check() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/config")
+def get_default_config() -> dict:
+    """Get default configuration including system prompt and checklist."""
+    config = get_config()
+    return {
+        "system_prompt": config.system_prompt,
+        "checklist": [{"id": item.id, "description": item.description} for item in config.default_checklist],
+    }
+
+
+@app.post("/config")
+def save_config(request: ConfigUpdateRequest) -> dict:
+    """Save system prompt and checklist configuration."""
+    try:
+        from .config import reload_config
+        config = get_config()
+        config.save_config(request.system_prompt, request.checklist)
+        # Reload the global config instance to reflect changes
+        reload_config()
+        return {"status": "success", "message": "Configuration saved successfully"}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to save configuration: {str(exc)}") from exc
 
 
 @app.post("/review", response_model=ReviewResponse)
