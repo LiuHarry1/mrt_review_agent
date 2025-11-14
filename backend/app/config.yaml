@@ -1,0 +1,58 @@
+# MRT Review Agent Configuration
+
+# LLM Prompt Configuration
+llm:
+  system_prompt: |
+    你是专业的软件测试审查员。请根据检查清单对给定的手动回归测试进行审核，
+    输出每条改进建议以及对应的 Checklist ID。
+  model: "qwen-max"
+  timeout: 120.0
+
+# Default Checklist Configuration
+default_checklist:
+  - id: "CHK-001"
+    description: "测试目标明确且可衡量"
+  - id: "CHK-002"
+    description: "前置条件完整，包含数据与环境"
+  - id: "CHK-003"
+    description: "执行步骤清晰且可操作"
+  - id: "CHK-004"
+    description: "预期结果具体且可验证"
+  - id: "CHK-005"
+    description: "包含正向与逆向场景"
+
+# Keyword Mapping for Heuristic Review
+# Maps checklist IDs to keywords that should be present in MRT content
+# If a checklist item has keywords defined, the heuristic will check for their presence
+keyword_mapping:
+  CHK-001:
+    - "objective"
+    - "目标"
+    - "目的"
+  CHK-002:
+    - "precondition"
+    - "前提"
+    - "前置"
+    - "环境"
+  CHK-003:
+    - "step"
+    - "步骤"
+    - "执行"
+  CHK-004:
+    - "expected"
+    - "预期"
+    - "验证"
+  CHK-005:
+    - "negative"
+    - "逆向"
+    - "异常"
+    - "反向"
+
+# Additional Suggestions (applied regardless of checklist)
+additional_suggestions:
+  - id: "CHK-GEN-REQ"
+    keywords:
+      - "req-"
+      - "需求"
+    message: "建议引用需求编号（如 REQ-123）以增强需求追溯性。"
+
