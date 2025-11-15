@@ -1,19 +1,38 @@
 from __future__ import annotations
 
 import logging
+import sys
 from pathlib import Path
 
+import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from .config import get_config
-from .llm import LLMClient, DashScopeError
-from .models import ChatRequest, ConfigUpdateRequest, ReviewRequest, ReviewResponse
-from .logger import setup_logging
-from .service.chat import ChatService
-from .service.review import ReviewService
+# 处理导入问题：先尝试相对导入，失败则使用绝对导入
+_IS_MAIN = __name__ == "__main__"
+# 确保 backend 目录在 sys.path 中
+backend_dir = Path(__file__).parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
+try:
+    # 先尝试相对导入（作为模块导入时）
+    from .config import get_config
+    from .llm import LLMClient, DashScopeError
+    from .models import ChatRequest, ConfigUpdateRequest, ReviewRequest, ReviewResponse
+    from .logger import setup_logging
+    from .service.chat import ChatService
+    from .service.review import ReviewService
+except ImportError:
+    # 相对导入失败，使用绝对导入（直接运行时）
+    from app.config import get_config
+    from app.llm import LLMClient, DashScopeError
+    from app.models import ChatRequest, ConfigUpdateRequest, ReviewRequest, ReviewResponse
+    from app.logger import setup_logging
+    from app.service.chat import ChatService
+    from app.service.review import ReviewService
 
 # Configure logging to output to both console and file
 setup_logging(
@@ -61,7 +80,11 @@ def get_default_config() -> dict:
 def save_config(request: ConfigUpdateRequest) -> dict:
     """Save system prompt template and checklist configuration."""
     try:
-        from .config import reload_config
+        # 动态导入以支持直接运行和模块导入
+        try:
+            from .config import reload_config
+        except ImportError:
+            from app.config import reload_config
         get_config().save_config(request.system_prompt_template, request.checklist)
         reload_config()
         return {"status": "success", "message": "Configuration saved successfully"}
@@ -81,8 +104,12 @@ def review(request: ReviewRequest) -> ReviewResponse:
 def upload_file(file: UploadFile = File(...)):
     """Upload and parse file, returning text content."""
     try:
-        from .service.file_parser import parse_file_content
         import base64
+        # 动态导入以支持直接运行和模块导入
+        try:
+            from .service.file_parser import parse_file_content
+        except ImportError:
+            from app.service.file_parser import parse_file_content
         
         # Read file content
         content = file.file.read()
@@ -150,4 +177,19 @@ def agent_message_stream(request: ChatRequest):
         },
     )
 
+
+def main():
+    """启动 FastAPI 应用"""
+    # 使用导入字符串以支持 reload 功能
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
+
+
+if __name__ == "__main__":
+    main()
 

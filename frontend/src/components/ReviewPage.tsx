@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useReview } from '../hooks/useReview'
 import { ChecklistEditorModal } from '../ChecklistEditorModal'
 import { Alert } from './Alert'
@@ -106,7 +107,7 @@ export function ReviewPage() {
         {result && (
           <div className="review-results">
             <div className="result-markdown">
-              <ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {result.raw_content || result.summary || 'No content available'}
               </ReactMarkdown>
             </div>

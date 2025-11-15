@@ -1,6 +1,6 @@
 """Service layer for business logic."""
 # Lazy imports to avoid circular dependencies
-__all__ = ["ReviewService", "ChatService", "SessionStore"]
+__all__ = ["ReviewService", "ChatService"]
 
 def __getattr__(name):
     if name == "ReviewService":
@@ -9,8 +9,5 @@ def __getattr__(name):
     if name == "ChatService":
         from .chat import ChatService
         return ChatService
-    if name == "SessionStore":
-        from .chat import SessionStore
-        return SessionStore
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

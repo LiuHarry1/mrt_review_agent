@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type MutableRefObject } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useChat } from '../hooks/useChat'
 import { useFileUpload } from '../hooks/useFileUpload'
 import { uploadFile } from '../api'
@@ -224,7 +225,7 @@ export function ChatPage({ onResetRef }: ChatPageProps) {
         {(summary || (suggestions && suggestions.length > 0)) && history.length > 0 && (
           <div className="chat-results">
             <div className="result-markdown">
-              <ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {`${summary ? `## Review Summary\n\n${summary}\n\n` : ''}${
                   suggestions && suggestions.length > 0
                     ? `## Improvement Suggestions (${suggestions.length})\n\n${suggestions
@@ -348,17 +349,16 @@ export function ChatPage({ onResetRef }: ChatPageProps) {
                     <div className="loading-spinner"></div>
                   ) : (
                     <svg
-                      width="20"
-                      height="20"
+                      width="18"
+                      height="18"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      <path d="M12 19V5M5 12l7-7 7 7" />
                     </svg>
                   )}
                 </button>
