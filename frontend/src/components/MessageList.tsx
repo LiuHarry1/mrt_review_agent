@@ -6,7 +6,7 @@ import type { ChatTurn } from '../types'
 interface MessageListProps {
   history: ChatTurn[]
   loading?: boolean
-  messagesEndRef?: React.RefObject<HTMLDivElement>
+  messagesEndRef?: React.RefObject<HTMLDivElement | null>
 }
 
 export function MessageList({ history, loading, messagesEndRef }: MessageListProps) {
@@ -144,6 +144,7 @@ export function MessageList({ history, loading, messagesEndRef }: MessageListPro
           </div>
         </div>
       )}
+      {/* Scroll anchor at bottom for newest messages */}
       <div ref={messagesEndRef} />
     </div>
   )

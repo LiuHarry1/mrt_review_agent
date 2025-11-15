@@ -522,6 +522,7 @@ body {
   background: transparent;
   border: none;
   padding: 0.5rem 0;
+  position: relative;
 }
 
 /* Message action buttons */
@@ -530,18 +531,23 @@ body {
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.75rem;
+  min-height: 32px;
 }
 
 .message-actions.visible {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
 }
 
 .message-actions.hidden-on-hover {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
 }
 
 .message-wrapper.assistant:hover .message-actions.hidden-on-hover {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
 }
 
 .message-action-btn {

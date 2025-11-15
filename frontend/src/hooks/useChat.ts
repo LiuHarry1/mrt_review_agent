@@ -43,12 +43,12 @@ export function useChat() {
     }
   }, [])
 
-  // Auto scroll to bottom when messages update
+  // Auto scroll to bottom when new messages are added (newest messages at bottom, like Doubao)
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [history, loading])
+  }, [history.length]) // Only trigger when history length changes (new message added)
 
   const sendMessage = async (text?: string, files?: Array<{ name: string; content: string }>) => {
     const messageText = text || message.trim()
@@ -145,6 +145,14 @@ export function useChat() {
               assistantMessageIndex = updated.length - 1
             }
             return updated
+          })
+          
+          // Scroll to bottom during streaming to keep new content visible (newest messages at bottom, like Doubao)
+          // Always scroll to bottom during streaming so user can see the latest output
+          requestAnimationFrame(() => {
+            if (messagesEndRef.current) {
+              messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            }
           })
         },
         // onDone: streaming complete

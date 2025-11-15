@@ -6,7 +6,7 @@ interface FileUploadAreaProps {
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void
   onRemoveFile: (index: number) => void
-  fileInputRef: React.RefObject<HTMLInputElement>
+  fileInputRef: React.RefObject<HTMLInputElement | null>
   children?: React.ReactNode
 }
 
