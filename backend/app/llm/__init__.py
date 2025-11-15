@@ -1,11 +1,20 @@
-from __future__ import annotations
+"""LLM client module."""
+from .client import LLMClient
+from .factory import LLMClientFactory
+from .provider import LLMError, LLMProvider
 
-from .base_client import DashScopeError
-from .chatbot_client import ChatbotClient
-from .completion_client import CompletionClient
+# Backward compatibility
+CompletionClient = LLMClient
+ChatbotClient = LLMClient
+DashScopeError = LLMError
 
-# For backward compatibility
-LLMClient = CompletionClient
-
-__all__ = ["CompletionClient", "ChatbotClient", "LLMClient", "DashScopeError"]
+__all__ = [
+    "LLMClient",
+    "LLMClientFactory",
+    "LLMError",
+    "LLMProvider",
+    "CompletionClient",  # Backward compatibility
+    "ChatbotClient",     # Backward compatibility
+    "DashScopeError",    # Backward compatibility
+]
 

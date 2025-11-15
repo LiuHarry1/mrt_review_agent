@@ -427,6 +427,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
+  padding-bottom: 10rem; /* Add padding to avoid overlap with fixed input */
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -437,7 +438,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  max-width: 800px;
+  max-width: 1024px;
   width: 100%;
   margin: 0 auto;
   padding-bottom: 1rem;
@@ -712,7 +713,7 @@ body {
 
 /* ===== Chat Results ===== */
 .chat-results {
-  max-width: 800px;
+  max-width: 1024px;
   width: 100%;
   margin: 0 auto;
   display: flex;
@@ -777,13 +778,151 @@ body {
 }
 
 /* ===== Chat Input ===== */
+.chat-input-container-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: var(--bg-primary);
+  border-top: none;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: left 0.3s ease, width 0.3s ease;
+}
+
+/* Adjust for sidebar */
+body.sidebar-visible .chat-input-container-wrapper {
+  left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+}
+
+body.sidebar-hidden .chat-input-container-wrapper {
+  left: 0;
+  width: 100%;
+}
+
+
+.files-preview-inside {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 0.5rem;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.file-preview-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.file-preview-chip.loading {
+  opacity: 0.7;
+}
+
+.file-preview-chip.error {
+  border-color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.file-chip-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.file-chip-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.file-chip-error {
+  color: var(--error);
+  font-size: 0.75rem;
+  margin-left: -0.25rem;
+}
+
+.file-chip-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.125rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: -0.25rem;
+}
+
+.file-chip-remove:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.file-chip-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  flex: 1;
+  min-width: 80px;
+  max-width: 120px;
+}
+
+.file-chip-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.file-chip-progress-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+.file-chip-progress-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: right;
+}
+
 .chat-input-container {
   background: var(--bg-primary);
-  padding: 1rem 1.5rem 1.5rem;
+  padding: 0;
   flex-shrink: 0;
   position: relative;
   display: flex;
   justify-content: center;
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
 }
 
 .chat-input-container.drag-over {
@@ -855,8 +994,9 @@ body {
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
-  max-width: 800px;
+  max-width: 768px;
   margin: 0 auto;
+  align-items: stretch;
 }
 
 .chat-input-wrapper {
@@ -867,6 +1007,7 @@ body {
   display: flex;
   flex-direction: column;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .chat-input-wrapper:focus-within {
@@ -884,7 +1025,7 @@ body {
   resize: none;
   padding: 0.875rem 1rem;
   padding-bottom: 0.5rem;
-  min-height: 80px;
+  min-height: 52px;
   max-height: 200px;
   font-family: inherit;
   overflow-y: auto;
@@ -1363,7 +1504,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 16px;
   width: 100%;
-  max-width: 800px;
+  max-width: 1024px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;

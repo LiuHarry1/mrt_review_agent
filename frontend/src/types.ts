@@ -32,6 +32,7 @@ export interface ChatResponse {
 
 export interface ReviewPayload {
   mrt_content: string
+  software_requirement?: string
   checklist?: ChecklistItem[]
   system_prompt?: string
 }
@@ -40,6 +41,7 @@ export interface ChatPayload {
   session_id?: string
   message?: string
   mrt_content?: string
+  software_requirement?: string
   checklist?: ChecklistItem[]
   files?: Array<{ name: string; content: string }>
 }

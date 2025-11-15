@@ -5,8 +5,8 @@ import { getDefaultConfig, saveConfig } from './api'
 interface ChecklistEditorModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (systemPrompt: string, checklist: ChecklistItem[]) => void
-  initialSystemPrompt?: string
+  onSave: (systemPromptTemplate: string, checklist: ChecklistItem[]) => void
+  initialSystemPromptTemplate?: string
   initialChecklist?: ChecklistItem[]
 }
 
@@ -14,10 +14,10 @@ export function ChecklistEditorModal({
   isOpen,
   onClose,
   onSave,
-  initialSystemPrompt,
+  initialSystemPromptTemplate,
   initialChecklist,
 }: ChecklistEditorModalProps) {
-  const [systemPrompt, setSystemPrompt] = useState('')
+  const [systemPromptTemplate, setSystemPromptTemplate] = useState('')
   const [checklist, setChecklist] = useState<ChecklistItem[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -26,9 +26,9 @@ export function ChecklistEditorModal({
   // Load config when modal opens
   useEffect(() => {
     if (isOpen) {
-      if (initialSystemPrompt !== undefined && initialChecklist !== undefined) {
+      if (initialSystemPromptTemplate !== undefined && initialChecklist !== undefined) {
         // Use provided initial values
-        setSystemPrompt(initialSystemPrompt)
+        setSystemPromptTemplate(initialSystemPromptTemplate)
         setChecklist(initialChecklist)
         setLoading(false)
       } else {
@@ -36,12 +36,12 @@ export function ChecklistEditorModal({
         setLoading(true)
         getDefaultConfig()
           .then((config) => {
-            setSystemPrompt(config.system_prompt)
+            setSystemPromptTemplate(config.system_prompt_template)
             setChecklist(config.checklist)
           })
           .catch((error) => {
             console.error('Failed to load default config:', error)
-            setSystemPrompt('')
+            setSystemPromptTemplate('')
             setChecklist([])
           })
           .finally(() => {
@@ -50,11 +50,11 @@ export function ChecklistEditorModal({
       }
     } else {
       // Reset state when modal closes
-      setSystemPrompt('')
+      setSystemPromptTemplate('')
       setChecklist([])
       setLoading(false)
     }
-  }, [isOpen, initialSystemPrompt, initialChecklist])
+  }, [isOpen, initialSystemPromptTemplate, initialChecklist])
 
   const handleAddItem = () => {
     setChecklist([...checklist, { id: '', description: '' }])
@@ -74,8 +74,8 @@ export function ChecklistEditorModal({
     // Validate checklist items
     const validChecklist = checklist.filter((item) => item.id.trim() && item.description.trim())
     
-    if (!systemPrompt.trim()) {
-      setSaveError('System Prompt cannot be empty')
+    if (!systemPromptTemplate.trim()) {
+      setSaveError('System Prompt Template cannot be empty')
       return
     }
     
@@ -89,10 +89,10 @@ export function ChecklistEditorModal({
 
     try {
       await saveConfig({
-        system_prompt: systemPrompt,
+        system_prompt_template: systemPromptTemplate,
         checklist: validChecklist,
       })
-      onSave(systemPrompt, validChecklist)
+      onSave(systemPromptTemplate, validChecklist)
       onClose()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Save failed'
@@ -112,7 +112,7 @@ export function ChecklistEditorModal({
     <div className="modal-overlay" onClick={handleCancel}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Edit Checklist and System Prompt</h2>
+          <h2 className="modal-title">Edit Checklist and System Prompt Template</h2>
           <button type="button" className="modal-close-btn" onClick={handleCancel}>
             ×
           </button>
@@ -123,18 +123,21 @@ export function ChecklistEditorModal({
             <div className="modal-loading">Loading...</div>
           ) : (
             <>
-              {/* System Prompt Section */}
+              {/* System Prompt Template Section */}
               <div className="modal-section">
                 <label className="modal-section-label">
-                  <span>System Prompt</span>
+                  <span>System Prompt Template</span>
                 </label>
                 <textarea
-                  value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
-                  placeholder="Please enter system prompt..."
+                  value={systemPromptTemplate}
+                  onChange={(e) => setSystemPromptTemplate(e.target.value)}
+                  placeholder="Please enter system prompt template (supports {checklist_section} and {requirement_section} variables)..."
                   className="modal-textarea"
-                  rows={8}
+                  rows={12}
                 />
+                <p className="form-hint" style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                  This template supports variables: {'{'}checklist_section{'}'} and {'{'}requirement_section{'}'} which will be automatically replaced.
+                </p>
               </div>
 
               {/* Checklist Section */}

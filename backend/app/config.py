@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from .schemas import ChecklistItem
+from .models import ChecklistItem
 
 
 class Config:
@@ -28,9 +28,15 @@ class Config:
             return yaml.safe_load(f) or {}
 
     @property
-    def system_prompt(self) -> str:
-        """Get LLM system prompt."""
-        return self._config.get("llm", {}).get("system_prompt", "你是专业的软件测试审查员。请根据检查清单对给定的手动回归测试进行审核，输出每条改进建议以及对应的 Checklist ID。")
+    def system_prompt_template(self) -> str:
+        """Get default system prompt template from config.yaml."""
+        template = self._config.get("llm", {}).get("system_prompt_template", "")
+        if not template or not template.strip():
+            raise ValueError(
+                "system_prompt_template is required in config.yaml. "
+                "Please ensure config.yaml contains llm.system_prompt_template."
+            )
+        return template
 
     @property
     def llm_model(self) -> str:
@@ -54,23 +60,34 @@ class Config:
             ]
         return self._default_checklist
 
+    def get_default_checklist(self) -> List[ChecklistItem]:
+        """Get default checklist from configuration (alias for backward compatibility)."""
+        return self.default_checklist
+
+    @staticmethod
+    def resolve_checklist(items: Optional[List[ChecklistItem]]) -> List[ChecklistItem]:
+        """Resolve checklist items, using default if none provided."""
+        if not items:
+            return get_config().default_checklist
+        return items
+
 
     @property
     def config_path(self) -> str:
         """Get the path to the configuration file."""
         return os.getenv("MRT_REVIEW_CONFIG", str(Path(__file__).parent / "config.yaml"))
 
-    def save_config(self, system_prompt: str, checklist: List[ChecklistItem]) -> None:
-        """Save system prompt and checklist to configuration file."""
+    def save_config(self, system_prompt_template: str, checklist: List[ChecklistItem]) -> None:
+        """Save system prompt template and checklist to configuration file."""
         config_file = Path(self.config_path)
         
         # Load existing config to preserve other settings
         existing_config = self._config.copy()
         
-        # Update system prompt
+        # Update system prompt template
         if "llm" not in existing_config:
             existing_config["llm"] = {}
-        existing_config["llm"]["system_prompt"] = system_prompt
+        existing_config["llm"]["system_prompt_template"] = system_prompt_template
         
         # Update checklist
         existing_config["default_checklist"] = [

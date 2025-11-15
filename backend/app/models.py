@@ -18,6 +18,10 @@ class Suggestion(BaseModel):
 
 class ReviewRequest(BaseModel):
     mrt_content: str = Field(..., description="Raw manual regression test content provided by the user")
+    software_requirement: Optional[str] = Field(
+        default=None,
+        description="Software requirement content. Used to review test cases against requirements to ensure comprehensive coverage.",
+    )
     checklist: Optional[List[ChecklistItem]] = Field(
         default=None,
         description="Optional custom checklist to use for the review. If omitted, the default checklist is applied.",
@@ -35,9 +39,11 @@ class ReviewResponse(BaseModel):
 
 
 class ConversationState(str, Enum):
+    INITIAL = "initial"
     AWAITING_MRT = "awaiting_mrt"
-    AWAITING_CHECKLIST = "awaiting_checklist"
-    READY = "ready"
+    AWAITING_REQUIREMENT = "awaiting_requirement"
+    REVIEWING = "reviewing"
+    COMPLETED = "completed"
 
 
 class ChatRequest(BaseModel):
@@ -49,9 +55,17 @@ class ChatRequest(BaseModel):
         default=None,
         description="Free form user message to the agent.",
     )
+    messages: Optional[List[Dict[str, str]]] = Field(
+        default=None,
+        description="Full conversation history from frontend. Format: [{'role': 'user/assistant', 'content': '...'}, ...]",
+    )
     mrt_content: Optional[str] = Field(
         default=None,
         description="Manual regression test content provided outside of the conversational message.",
+    )
+    software_requirement: Optional[str] = Field(
+        default=None,
+        description="Software requirement content provided outside of the conversational message.",
     )
     checklist: Optional[List[ChecklistItem]] = Field(
         default=None,
@@ -74,9 +88,8 @@ class ChatResponse(BaseModel):
     replies: List[str]
     suggestions: Optional[List[Suggestion]] = None
     summary: Optional[str] = None
-    history: List[ChatTurn] = Field(default_factory=list)
 
 
 class ConfigUpdateRequest(BaseModel):
-    system_prompt: str = Field(..., description="System prompt to save")
+    system_prompt_template: str = Field(..., description="System prompt template to save")
     checklist: List[ChecklistItem] = Field(..., description="Checklist items to save")
