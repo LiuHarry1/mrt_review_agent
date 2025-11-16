@@ -32,9 +32,9 @@ export function ReviewPage() {
       <div className="review-header">
         <div className="review-header-top">
           <div className="review-title-section">
-            <h2>Quick Review</h2>
+            <h2>Single-Pass Review</h2>
             <p className="review-subtitle">
-              Get instant AI-powered review results. Paste your MRT content and software requirement to receive comprehensive feedback.
+              Paste your MRT content once and get instant AI-powered review feedback, aligned with your requirements and checklist.
             </p>
           </div>
           <button

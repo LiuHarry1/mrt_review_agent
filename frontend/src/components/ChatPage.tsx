@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type MutableRefObject } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChat } from '../hooks/useChat'
@@ -16,11 +16,7 @@ interface FileWithContent {
   progress?: number
 }
 
-interface ChatPageProps {
-  onResetRef?: MutableRefObject<(() => void) | null>
-}
-
-export function ChatPage({ onResetRef }: ChatPageProps) {
+export function ChatPage() {
   const {
     message,
     setMessage,
@@ -28,25 +24,11 @@ export function ChatPage({ onResetRef }: ChatPageProps) {
     suggestions,
     summary,
     loading,
-    setLoading,
     alert,
     setAlert,
     messagesEndRef,
     sendMessage,
-    resetSession,
   } = useChat()
-
-  // Expose resetSession to parent via ref
-  useEffect(() => {
-    if (onResetRef) {
-      onResetRef.current = resetSession
-    }
-    return () => {
-      if (onResetRef) {
-        onResetRef.current = null
-      }
-    }
-  }, [onResetRef, resetSession])
 
   const {
     uploadedFiles,
@@ -134,6 +116,8 @@ export function ChatPage({ onResetRef }: ChatPageProps) {
   }
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const messagesWrapperRef = useRef<HTMLDivElement>(null)
+  const [autoScroll, setAutoScroll] = useState(true)
 
   // Auto-resize textarea
   useEffect(() => {
@@ -149,6 +133,34 @@ export function ChatPage({ onResetRef }: ChatPageProps) {
     textarea.addEventListener('input', adjustHeight)
     return () => textarea.removeEventListener('input', adjustHeight)
   }, [message])
+
+  // When starting a new empty chat, scroll to top and focus textarea
+  useEffect(() => {
+    if (!loading && history.length === 0) {
+      if (messagesWrapperRef.current) {
+        messagesWrapperRef.current.scrollTop = 0
+      }
+      if (textareaRef.current) {
+        textareaRef.current.focus()
+      }
+    }
+  }, [history.length, loading])
+
+  // During streaming or when new messages arrive, keep scroll at bottom
+  // only when user is already near the bottom (autoScroll = true)
+  useEffect(() => {
+    if (autoScroll && messagesWrapperRef.current) {
+      messagesWrapperRef.current.scrollTop = messagesWrapperRef.current.scrollHeight
+    }
+  }, [history, loading, autoScroll])
+
+  const handleMessagesScroll = () => {
+    const container = messagesWrapperRef.current
+    if (!container) return
+    const threshold = 40 // px
+    const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+    setAutoScroll(distanceToBottom <= threshold)
+  }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -219,7 +231,11 @@ export function ChatPage({ onResetRef }: ChatPageProps) {
   return (
     <section className="chat-container">
       {/* Chat Messages Area */}
-      <div className="chat-messages-wrapper">
+      <div
+        className="chat-messages-wrapper"
+        ref={messagesWrapperRef}
+        onScroll={handleMessagesScroll}
+      >
         <MessageList history={history} loading={loading} messagesEndRef={messagesEndRef} />
 
         {(summary || (suggestions && suggestions.length > 0)) && history.length > 0 && (

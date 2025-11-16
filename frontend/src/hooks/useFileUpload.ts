@@ -1,7 +1,7 @@
 import { useState, useRef, type DragEvent, type ChangeEvent } from 'react'
 
 const VALID_EXTENSIONS = ['.txt', '.md', '.json', '.text', '.pdf', '.doc', '.docx']
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB (increased for PDF/Word files)
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
 interface FileUploadError {
   type: 'size' | 'format'
@@ -105,22 +105,20 @@ export function useFileUpload() {
   const formatErrorMessages = (errors: FileUploadError[]): string => {
     if (errors.length === 0) return ''
 
-    const messages: string[] = []
+    if (errors.length === 0) return ''
+
     const sizeErrors = errors.find((e) => e.type === 'size')
     const formatErrors = errors.find((e) => e.type === 'format')
 
-    if (sizeErrors) {
-      messages.push(`File too large (>1MB): ${sizeErrors.files.join(', ')}`)
-    }
-    if (formatErrors) {
-      messages.push(`Unsupported file format: ${formatErrors.files.join(', ')}`)
-    }
+    const messages = [
+      sizeErrors && `File too large (>5MB): ${sizeErrors.files.join(', ')}`,
+      formatErrors && `Unsupported file format: ${formatErrors.files.join(', ')}`,
+    ].filter(Boolean)
 
-    if (messages.length === 0 && errors.length > 0) {
-      return 'File validation failed: Only text files, PDF, and Word documents are supported (.txt, .md, .json, .pdf, .doc, .docx), each file not exceeding 5MB.'
-    }
-
-    return messages.join('; ')
+    return (
+      (messages.length > 0 && (messages as string[]).join('; ')) ||
+      'File validation failed: Only text files, PDF, and Word documents are supported (.txt, .md, .json, .pdf, .doc, .docx), each file not exceeding 5MB.'
+    )
   }
 
   return {
