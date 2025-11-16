@@ -116,7 +116,10 @@ export function ChatSessionsProvider({ children }: { children: ReactNode }) {
         summary: undefined,
       }
       setState((prev) => {
-        const sessions = [newSession, ...prev.sessions]
+        // Keep only sessions that actually have history;
+        // this prevents many empty "New chat" sessions from pushing out old ones.
+        const nonEmptySessions = prev.sessions.filter((s) => s.history.length > 0)
+        const sessions = [newSession, ...nonEmptySessions]
         return {
           sessions: sessions.slice(0, 10),
           activeSessionId: id,

@@ -34,21 +34,9 @@ export function MessageList({ history, loading, messagesEndRef }: MessageListPro
   if (history.length === 0) {
     return (
       <div className="empty-chat-state">
-        <h3 className="empty-chat-title">Start a New Conversation</h3>
-        <p className="empty-chat-desc">
-          Upload MRT files or enter content, AI assistant will help you review
-        </p>
-        <div className="empty-chat-tips">
-          <div className="tip-item">
-            <span>Support drag and drop file upload</span>
-          </div>
-          <div className="tip-item">
-            <span>Processed as MRT file by default</span>
-          </div>
-          <div className="tip-item">
-            <span>Can modify and view checklist</span>
-          </div>
-        </div>
+        <h3 className="empty-chat-title">
+          How can I help you with MRT reviews today?
+        </h3>
       </div>
     )
   }

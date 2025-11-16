@@ -39,12 +39,22 @@ export function Layout({
               type="button"
               className="sidebar-toggle-top"
               onClick={onSidebarToggle}
-              title="Show menu"
+              data-tooltip="Open sidebar"
+              aria-label="Open sidebar"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="18" x2="21" y2="18" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M21 5H11v14h10zM3 5h6v14H3zm0-2a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm2 4.25a.75.75 0 0 0 0 1.5h2a.75.75 0 0 0 0-1.5zm-.75 3.5A.75.75 0 0 1 5 10h2a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75m.75 2a.75.75 0 0 0 0 1.5h2a.75.75 0 0 0 0-1.5z"
+                />
               </svg>
             </button>
           )}
@@ -96,7 +106,8 @@ export function Layout({
             type="button"
             className="sidebar-close-btn"
             onClick={onSidebarToggle}
-            title="Close sidebar"
+            data-tooltip="Close sidebar"
+            aria-label="Close sidebar"
           >
             <svg
               width="18"

@@ -122,20 +122,6 @@ export function useChat() {
             updateActiveSession({ history: updated })
             return updated
           })
-
-          requestAnimationFrame(() => {
-            const anchor = messagesEndRef.current
-            const container = anchor?.parentElement
-            if (!anchor || !container) return
-
-            const distanceToBottom =
-              container.scrollHeight - container.scrollTop - container.clientHeight
-
-            // Only auto-scroll when user is already near the bottom (like ChatGPT)
-            if (distanceToBottom <= 80) {
-              anchor.scrollIntoView({ block: 'end' })
-            }
-          })
         },
         () => {
           setLoading(false)
