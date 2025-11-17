@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -13,21 +13,23 @@ from ..utils.exceptions import format_error_message
 
 if TYPE_CHECKING:
     from ..service.chat import ChatService
+else:
+    ChatService = Any
 
 router = APIRouter()
 
 # Global service instance (will be set by setup_chat_routes)
-_chat_service: "ChatService | None" = None
+_chat_service: ChatService | None = None
 
 
-def get_chat_service() -> "ChatService":
+def get_chat_service() -> ChatService:
     """Dependency to get chat service."""
     if _chat_service is None:
         raise RuntimeError("Chat service not initialized. Call setup_chat_routes first.")
     return _chat_service
 
 
-def setup_chat_routes(chat_service: "ChatService") -> None:
+def setup_chat_routes(chat_service: ChatService) -> None:
     """
     Setup chat route handlers with service dependencies.
     
@@ -41,7 +43,7 @@ def setup_chat_routes(chat_service: "ChatService") -> None:
 @router.post("/agent/message/stream")
 def agent_message_stream(
     request: ChatRequest,
-    chat_service: "ChatService" = Depends(get_chat_service),
+    chat_service: ChatService = Depends(get_chat_service),
 ) -> StreamingResponse:
     """Handle chat request with streaming response."""
     

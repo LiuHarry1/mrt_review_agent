@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import base64
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
@@ -14,21 +14,23 @@ from ..utils.exceptions import FileProcessingError, format_error_message
 
 if TYPE_CHECKING:
     from ..service.review import ReviewService
+else:
+    ReviewService = Any
 
 router = APIRouter()
 
 # Global service instance (will be set by setup_review_routes)
-_review_service: "ReviewService | None" = None
+_review_service: ReviewService | None = None
 
 
-def get_review_service() -> "ReviewService":
+def get_review_service() -> ReviewService:
     """Dependency to get review service."""
     if _review_service is None:
         raise RuntimeError("Review service not initialized. Call setup_review_routes first.")
     return _review_service
 
 
-def setup_review_routes(review_service: "ReviewService") -> None:
+def setup_review_routes(review_service: ReviewService) -> None:
     """
     Setup review route handlers with service dependencies.
     
@@ -42,7 +44,7 @@ def setup_review_routes(review_service: "ReviewService") -> None:
 @router.post("/review", response_model=ReviewResponse)
 def review(
     request: ReviewRequest,
-    review_service: "ReviewService" = Depends(get_review_service),
+    review_service: ReviewService = Depends(get_review_service),
 ) -> ReviewResponse:
     """Review MRT content using single-pass review."""
     try:
