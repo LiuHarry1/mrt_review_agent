@@ -144,14 +144,28 @@ class QwenClient(BaseLLMClient):
             request_time = time.time() - request_start
             logger.error(f"Qwen API timeout after {request_time:.2f}s")
             raise LLMError(f"请求超时：API响应时间超过 {self._config.llm_timeout} 秒。") from exc
+        except httpx.ConnectError as exc:
+            request_time = time.time() - request_start
+            logger.error(f"Qwen API connection error after {request_time:.2f}s: {str(exc)}")
+            error_msg = str(exc)
+            if "nodename" in error_msg or "not known" in error_msg:
+                raise LLMError(
+                    "网络连接错误：无法解析服务器地址。请检查网络连接和DNS设置。"
+                ) from exc
+            raise LLMError(f"连接错误：无法连接到AI服务。请检查网络连接。") from exc
         except httpx.HTTPStatusError as exc:
             request_time = time.time() - request_start
             logger.error(f"Qwen API HTTP error {exc.response.status_code}")
             raise LLMError(f"HTTP错误 {exc.response.status_code}：{exc.response.text[:200]}") from exc
         except Exception as exc:
             request_time = time.time() - request_start
-            logger.error(f"Qwen API error after {request_time:.2f}s: {str(exc)}")
-            raise LLMError(f"API错误：{str(exc)}") from exc
+            logger.error(f"Qwen API error after {request_time:.2f}s: {str(exc)}", exc_info=True)
+            error_msg = str(exc)
+            if "nodename" in error_msg or "not known" in error_msg or "getaddrinfo" in error_msg:
+                raise LLMError(
+                    "网络连接错误：无法解析服务器地址。请检查网络连接和DNS设置。"
+                ) from exc
+            raise LLMError(f"API错误：{error_msg}") from exc
 
     def _make_stream_request(self, endpoint: str, payload: Dict[str, Any]):
         """Make streaming HTTP request to DashScope API."""
@@ -197,9 +211,28 @@ class QwenClient(BaseLLMClient):
                                 except Exception as e:
                                     logger.warning(f"Error parsing stream chunk: {e}")
                                     continue
+        except httpx.TimeoutException as exc:
+            logger.error(f"Qwen streaming timeout: {str(exc)}")
+            raise LLMError(f"请求超时：流式响应时间超过限制。") from exc
+        except httpx.ConnectError as exc:
+            logger.error(f"Qwen streaming connection error: {str(exc)}")
+            error_msg = str(exc)
+            if "nodename" in error_msg or "not known" in error_msg:
+                raise LLMError(
+                    "网络连接错误：无法解析服务器地址。请检查网络连接和DNS设置。"
+                ) from exc
+            raise LLMError(f"连接错误：无法连接到AI服务。请检查网络连接。") from exc
+        except httpx.HTTPStatusError as exc:
+            logger.error(f"Qwen streaming HTTP error {exc.response.status_code}: {str(exc)}")
+            raise LLMError(f"HTTP错误 {exc.response.status_code}：{exc.response.text[:200]}") from exc
         except Exception as exc:
-            logger.error(f"Qwen streaming error: {str(exc)}")
-            raise LLMError(f"流式请求错误：{str(exc)}") from exc
+            logger.error(f"Qwen streaming error: {str(exc)}", exc_info=True)
+            error_msg = str(exc)
+            if "nodename" in error_msg or "not known" in error_msg or "getaddrinfo" in error_msg:
+                raise LLMError(
+                    "网络连接错误：无法解析服务器地址。请检查网络连接和DNS设置。"
+                ) from exc
+            raise LLMError(f"流式请求错误：{error_msg}") from exc
 
     def _extract_stream_chunk(self, chunk_data: Dict[str, Any]) -> Optional[str]:
         """Extract text chunk from Qwen streaming response."""

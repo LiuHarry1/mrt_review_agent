@@ -7,6 +7,8 @@ from typing import Dict, Generator, List, Optional
 from ..config import get_config
 from ..llm import LLMClient, LLMError
 from ..models import ChatRequest
+from ..utils.constants import MAX_CONVERSATION_TURNS
+from ..utils.exceptions import format_error_message
 from .chat_file_handler import format_files_for_message
 
 logger = logging.getLogger(__name__)
@@ -40,7 +42,7 @@ Workflow:
 
 Answer user questions about the review process."""
 
-    def _trim_history(self, messages: List[Dict[str, str]], max_turns: int = 30) -> List[Dict[str, str]]:
+    def _trim_history(self, messages: List[Dict[str, str]], max_turns: int = MAX_CONVERSATION_TURNS) -> List[Dict[str, str]]:
         """
         Trim conversation history to keep only recent messages.
         
@@ -86,7 +88,7 @@ Answer user questions about the review process."""
                 messages.append({"role": "user", "content": user_message})
 
             # Trim history to keep it manageable
-            messages = self._trim_history(messages, max_turns=30)
+            messages = self._trim_history(messages)
 
             # Build system prompt
             system_prompt = self._build_agent_system_prompt()
@@ -97,15 +99,7 @@ Answer user questions about the review process."""
                     for chunk in self.llm_client.chat_stream(messages, system_prompt=system_prompt):
                         yield chunk
                 except LLMError as exc:
-                    error_str = str(exc)
-                    if "Connection reset" in error_str or "Connection reset by peer" in error_str:
-                        error_msg = "Connection was reset. This might be due to large file size or network instability. Please try: 1) Upload smaller files 2) Check network connection 3) Retry later"
-                    elif "timeout" in error_str.lower() or "timed out" in error_str.lower():
-                        error_msg = "Request timeout: Processing took too long. Please try uploading smaller files or upload in batches."
-                    elif "Connection" in error_str:
-                        error_msg = "Connection error: Unable to connect to AI service. Please check network connection or retry later."
-                    else:
-                        error_msg = f"Error processing request: {error_str}"
+                    error_msg = format_error_message(exc, "Error processing request")
                     yield error_msg
                 except Exception as exc:
                     logger.error(f"Unexpected error during LLM streaming: {exc}", exc_info=True)

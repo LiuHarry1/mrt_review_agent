@@ -105,8 +105,6 @@ export function useFileUpload() {
   const formatErrorMessages = (errors: FileUploadError[]): string => {
     if (errors.length === 0) return ''
 
-    if (errors.length === 0) return ''
-
     const sizeErrors = errors.find((e) => e.type === 'size')
     const formatErrors = errors.find((e) => e.type === 'format')
 

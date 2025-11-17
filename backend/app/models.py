@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from enum import Enum
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -38,14 +37,6 @@ class ReviewResponse(BaseModel):
     raw_content: Optional[str] = Field(default=None, description="Raw content output from the model")
 
 
-class ConversationState(str, Enum):
-    INITIAL = "initial"
-    AWAITING_MRT = "awaiting_mrt"
-    AWAITING_REQUIREMENT = "awaiting_requirement"
-    REVIEWING = "reviewing"
-    COMPLETED = "completed"
-
-
 class ChatRequest(BaseModel):
     session_id: Optional[str] = Field(
         default=None,
@@ -75,19 +66,6 @@ class ChatRequest(BaseModel):
         default=None,
         description="List of uploaded files with name and content. Format: [{'name': '...', 'content': '...'}, ...]",
     )
-
-
-class ChatTurn(BaseModel):
-    role: str
-    content: str
-
-
-class ChatResponse(BaseModel):
-    session_id: str
-    state: ConversationState
-    replies: List[str]
-    suggestions: Optional[List[Suggestion]] = None
-    summary: Optional[str] = None
 
 
 class ConfigUpdateRequest(BaseModel):

@@ -60,9 +60,6 @@ class Config:
             ]
         return self._default_checklist
 
-    def get_default_checklist(self) -> List[ChecklistItem]:
-        """Get default checklist from configuration (alias for backward compatibility)."""
-        return self.default_checklist
 
     @staticmethod
     def resolve_checklist(items: Optional[List[ChecklistItem]]) -> List[ChecklistItem]:

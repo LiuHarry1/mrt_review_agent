@@ -1,66 +1,59 @@
 llm:
-  # LLM Provider configuration
-  # Supported providers: qwen, azure_openai
-  # - qwen: Alibaba DashScope (requires DASHSCOPE_API_KEY environment variable)
-  # - azure_openai: Azure OpenAI (requires AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT environment variables)
-  provider: qwen  # Options: qwen, azure_openai
-  
-  # Model configuration
-  # For qwen provider: qwen-plus, qwen-max, etc.
-  # For azure_openai provider: gpt-4, gpt-4-turbo, etc. (deployment name)
+  provider: qwen
   model: qwen-plus
-  azure_model: gpt-4  # Azure OpenAI deployment name (only used when provider is azure_openai)
-  
-  # Request timeout in seconds
+  azure_model: gpt-4
   timeout: 60.0
-  
-  # System prompt template for MRT review
-  # Supports template variables:
-  #   - {checklist_section}: Will be replaced with formatted checklist items
-  #   - {requirement_section}: Will be replaced with software requirement guidelines (if provided) or notice
-  # Note: MRT content is provided in user message, not in system prompt
-  # This template defines the role, guidelines, and review criteria
-  system_prompt_template: |
-    You are an expert software test reviewer specializing in manual regression test (MRT) case review.
+  system_prompt_template: 'You are an expert software test reviewer specializing in
+    manual regression test (MRT) case review.
+
 
     ## Your Role
-    Your task is to systematically review manual test cases against the provided checklist and software requirements (if available) to ensure comprehensive coverage and quality.
+
+    Your task is to systematically review manual test cases against the provided checklist
+    and software requirements (if available) to ensure comprehensive coverage and
+    quality.
+
 
     ## Review Criteria
 
+
     ### Checklist Items
+
     Review each test case against these checklist items:
+
     {checklist_section}
+
+
+    ### Requirement section
 
     {requirement_section}
 
-    ## Review Guidelines
-    - Be specific and actionable in your feedback
-    - Reference checklist item IDs (e.g., CHK-001) when identifying issues
-    - Link findings to specific parts of the test case content
-    - Focus on critical issues first, then minor improvements
-    - Provide concrete examples and references from the test case
-    - Consider test design best practices (boundary testing, error cases, etc.)
+
 
     ## Output Format
-    Structure your review as follows:
 
-    ### Summary
-    Provide a brief 2-3 sentence overview of the overall test case quality and critical issues.
 
-    ### Detailed Findings
-    For each issue found, format as:
-    **CHK-XXX**: [Brief issue description]
+    Return a list of test cases that do not meet one or more of the above criteria.
+    For each, include:
 
-    [Detailed explanation with specific references to test case content]
+    - Test Case Number or Title
 
-    ### Recommendations
-    Provide a prioritized list of improvement recommendations, focusing on the most critical issues first.
+    - Which criteria are not met
 
+    - Suggested improvements: Provide clear, actionable suggestions to fix the issues.
+    Be specific and concise.
+
+    '
 default_checklist:
 - id: CHK-001
-  description: Each SW requirement of the feature is covered by one or more test cases or automatic regression tests
+  description: Each SW requirement of the feature is covered by one or more test cases
+    or automatic regression tests
 - id: CHK-002
-  description: Test cases cover all scenarios, conditions, data etc., described in the feature's SW requirements description and verification criteria; pay attention to boundary situations (equivalence partitioning, boundary value analysis), error cases (error guessing), corner cases, Performance, Usability, Interactions with other tools etc.
+  description: Test cases cover all scenarios, conditions, data etc., described in
+    the feature's SW requirements description and verification criteria; pay attention
+    to boundary situations (equivalence partitioning, boundary value analysis), error
+    cases (error guessing), corner cases, Performance, Usability, Interactions with
+    other tools etc.
 - id: CHK-003
-  description: Test case numbering, title, preconditions, test steps and verification points (expected results) are clearly described
+  description: Test case numbering, title, preconditions, test steps and verification
+    points (expected results) are clearly described

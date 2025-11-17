@@ -8,6 +8,11 @@ export interface Suggestion {
   message: string
 }
 
+export interface Alert {
+  type: 'error' | 'success'
+  message: string
+}
+
 export interface ReviewResponse {
   suggestions: Suggestion[]
   summary?: string
@@ -17,7 +22,7 @@ export interface ReviewResponse {
 export type ConversationState = 'awaiting_mrt' | 'awaiting_checklist' | 'ready'
 
 export interface ChatTurn {
-  role: string
+  role: 'user' | 'assistant'
   content: string
 }
 
@@ -40,6 +45,7 @@ export interface ReviewPayload {
 export interface ChatPayload {
   session_id?: string
   message?: string
+  messages?: Array<{ role: string; content: string }>
   mrt_content?: string
   software_requirement?: string
   checklist?: ChecklistItem[]

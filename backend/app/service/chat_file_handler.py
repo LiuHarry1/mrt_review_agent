@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Optional
 
+from ..utils.constants import MAX_FILE_CONTENT_SIZE, MAX_TOTAL_FILE_SIZE
+from ..utils.file_utils import is_binary_file, truncate_content
 from .file_parser import parse_file_content
 
 logger = logging.getLogger(__name__)
@@ -24,8 +26,6 @@ def format_files_for_message(files: Optional[List[Dict[str, str]]]) -> str:
         return ""
 
     file_parts = []
-    MAX_CONTENT_SIZE = 50000  # Limit file content size per file
-    MAX_TOTAL_SIZE = 100000  # Limit total size for all files
 
     for file_info in files:
         file_name = file_info.get("name", "untitled")
@@ -35,20 +35,16 @@ def format_files_for_message(files: Optional[List[Dict[str, str]]]) -> str:
 
         # Parse file content
         parsed_content = None
-        if file_content.startswith("[BINARY_FILE:"):
+        if is_binary_file(file_content):
             # Try to parse binary file
             try:
-                parts = file_content[len("[BINARY_FILE:"):].split(":", 1)
-                file_ext = parts[0] if parts else ""
-                
-                if file_ext in [".pdf", ".doc", ".docx"]:
-                    parsed_content = parse_file_content(file_name, file_content)
+                parsed_content = parse_file_content(file_name, file_content)
             except Exception as e:
                 logger.warning(f"Failed to parse binary file {file_name}: {e}")
 
         if parsed_content is None:
             # Handle text files or failed binary parsing
-            if not file_content.startswith("[BINARY_FILE:"):
+            if not is_binary_file(file_content):
                 parsed_content = file_content
             else:
                 # Binary file that couldn't be parsed
@@ -60,19 +56,16 @@ def format_files_for_message(files: Optional[List[Dict[str, str]]]) -> str:
                 continue
 
         # Truncate if too long
-        if len(parsed_content) > MAX_CONTENT_SIZE:
-            parsed_content = (
-                parsed_content[:MAX_CONTENT_SIZE] + 
-                f"\n\n[Note: File content truncated. Original size: {len(parsed_content)} characters]"
-            )
+        parsed_content = truncate_content(parsed_content, MAX_FILE_CONTENT_SIZE, file_name)
 
         # Check total size
         current_total = sum(len(part) for part in file_parts)
-        if current_total + len(parsed_content) > MAX_TOTAL_SIZE:
-            remaining = MAX_TOTAL_SIZE - current_total
+        if current_total + len(parsed_content) > MAX_TOTAL_FILE_SIZE:
+            remaining = MAX_TOTAL_FILE_SIZE - current_total
             if remaining > 0:
+                truncated = truncate_content(parsed_content, remaining, file_name)
                 file_parts.append(
-                    f"[File: {file_name}]\n{parsed_content[:remaining]}\n\n"
+                    f"[File: {file_name}]\n{truncated}\n\n"
                     f"[Note: Remaining file content omitted due to size limit]"
                 )
             break

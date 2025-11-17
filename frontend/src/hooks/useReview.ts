@@ -1,11 +1,6 @@
 import { useState } from 'react'
-import type { ReviewResponse, ChecklistItem } from '../types'
+import type { ReviewResponse, ChecklistItem, Alert } from '../types'
 import { reviewMrt } from '../api'
-
-interface Alert {
-  type: 'error' | 'success'
-  message: string
-}
 
 export function useReview() {
   const [mrtContent, setMrtContent] = useState('')
@@ -50,13 +45,6 @@ export function useReview() {
     setCustomChecklist(checklist)
   }
 
-  const reset = () => {
-    setMrtContent('')
-    setSoftwareRequirement('')
-    setResult(null)
-    setAlert(null)
-  }
-
   return {
     mrtContent,
     setMrtContent,
@@ -70,7 +58,6 @@ export function useReview() {
     customChecklist,
     submitReview,
     handleChecklistSave,
-    reset,
   }
 }
 

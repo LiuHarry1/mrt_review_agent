@@ -1,9 +1,16 @@
 """File parsing utilities for PDF, Word, and text files."""
 from __future__ import annotations
 
-import base64
 import logging
 from typing import Optional
+
+from ..utils.constants import BINARY_EXTENSIONS, TEXT_EXTENSIONS
+from ..utils.file_utils import (
+    decode_binary_content,
+    is_binary_file,
+    is_text_file,
+    parse_binary_file_marker,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,43 +26,38 @@ def parse_file_content(file_name: str, file_content: str) -> Optional[str]:
     Returns:
         Extracted text content or None if parsing fails
     """
-    file_name_lower = file_name.lower()
-    
     # Check if it's a base64 encoded binary file
-    if file_content.startswith("[BINARY_FILE:"):
-        try:
-            parts = file_content[len("[BINARY_FILE:"):].split(":", 1)
-            file_ext = parts[0] if parts else ""
-            base64_content = parts[1].rstrip("]") if len(parts) > 1 else ""
-            
-            if file_ext in [".pdf", ".doc", ".docx"]:
-                return parse_binary_file(file_ext, base64_content)
-        except Exception as e:
-            logger.error(f"Failed to parse binary file {file_name}: {e}")
-            return None
+    if is_binary_file(file_content):
+        file_ext, base64_content = parse_binary_file_marker(file_content)
+        if file_ext and base64_content:
+            # Ensure file extension starts with dot
+            if not file_ext.startswith('.'):
+                file_ext = '.' + file_ext
+            if file_ext in BINARY_EXTENSIONS:
+                file_bytes = decode_binary_content(base64_content)
+                if file_bytes:
+                    return parse_binary_file(file_ext, file_bytes)
+        return None
     
     # Handle text files - already plain text
-    if file_name_lower.endswith((".txt", ".md", ".json", ".text")):
+    if is_text_file(file_name):
         return file_content
     
     return None
 
 
-def parse_binary_file(file_ext: str, base64_content: str) -> Optional[str]:
+def parse_binary_file(file_ext: str, file_bytes: bytes) -> Optional[str]:
     """
-    Parse binary file (PDF/Word) from base64 content.
+    Parse binary file (PDF/Word) from bytes.
     
     Args:
         file_ext: File extension (.pdf, .doc, .docx)
-        base64_content: Base64 encoded file content
+        file_bytes: File content as bytes
     
     Returns:
         Extracted text content or None if parsing fails
     """
     try:
-        # Decode base64
-        file_bytes = base64.b64decode(base64_content)
-        
         if file_ext == ".pdf":
             return parse_pdf(file_bytes)
         elif file_ext in [".doc", ".docx"]:

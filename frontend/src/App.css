@@ -436,12 +436,7 @@ body {
   gap: 0.25rem;
   padding: 0.35rem 0.5rem;
   border-radius: 8px;
-  border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-align: left;
 }
 
 .sidebar-session-item:hover {
@@ -450,6 +445,23 @@ body {
 
 .sidebar-session-item.active {
   background: rgba(59, 130, 246, 0.15);
+}
+
+.sidebar-session-item-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  min-width: 0;
+}
+
+.sidebar-session-item.active .sidebar-session-item-button {
   color: var(--text-primary);
 }
 

@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { useReview } from '../hooks/useReview'
 import { ChecklistEditorModal } from '../ChecklistEditorModal'
 import { Alert } from './Alert'
+import { handleFileDrop, handleFileSelect } from '../utils/fileReader'
 
 export function ReviewPage() {
   const {
@@ -30,59 +31,19 @@ export function ReviewPage() {
   }
 
   const handleMrtDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
-    e.preventDefault()
-    const file = e.dataTransfer.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setMrtContent(reader.result)
-      }
-    }
-    reader.readAsText(file)
+    handleFileDrop(e, setMrtContent)
   }
 
   const handleRequirementDrop = (e: React.DragEvent<HTMLTextAreaElement>) => {
-    e.preventDefault()
-    const file = e.dataTransfer.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setSoftwareRequirement(reader.result)
-      }
-    }
-    reader.readAsText(file)
+    handleFileDrop(e, setSoftwareRequirement)
   }
 
   const handleMrtFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setMrtContent(reader.result)
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
+    handleFileSelect(e, setMrtContent)
   }
 
   const handleRequirementFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setSoftwareRequirement(reader.result)
-      }
-    }
-    reader.readAsText(file)
-    e.target.value = ''
+    handleFileSelect(e, setSoftwareRequirement)
   }
 
   return (

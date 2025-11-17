@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useChatSessions } from '../hooks/useChatSessions'
 
 interface LayoutProps {
@@ -191,21 +191,25 @@ export function Layout({
               sessions
                 .filter((session) => session.history.length > 0)
                 .map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    type="button"
                     className={`sidebar-session-item ${
                       session.id === activeSessionId ? 'active' : ''
                     }`}
-                    onClick={() => {
-                      selectSession(session.id)
-                      if (activeTab !== 'chat') {
-                        onTabChange('chat')
-                      }
-                    }}
                     title={session.title}
                   >
-                    <span className="sidebar-session-title">{session.title}</span>
+                    <button
+                      type="button"
+                      className="sidebar-session-item-button"
+                      onClick={() => {
+                        selectSession(session.id)
+                        if (activeTab !== 'chat') {
+                          onTabChange('chat')
+                        }
+                      }}
+                    >
+                      <span className="sidebar-session-title">{session.title}</span>
+                    </button>
                     <button
                       type="button"
                       className="sidebar-session-delete"
@@ -217,7 +221,7 @@ export function Layout({
                     >
                       ×
                     </button>
-                  </button>
+                  </div>
                 ))
             )}
           </div>

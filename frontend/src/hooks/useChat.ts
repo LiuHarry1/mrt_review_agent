@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import type { ChatResponse, Suggestion } from '../types'
+import type { ChatResponse, Suggestion, Alert } from '../types'
 import { sendChatMessageStream } from '../api'
 import { useChatSessions } from './useChatSessions'
-
-interface Alert {
-  type: 'error' | 'success'
-  message: string
-}
 
 export function useChat() {
   const { activeSession, updateActiveSession, createSession } = useChatSessions()
@@ -23,13 +18,17 @@ export function useChat() {
   // Sync local state when active session changes
   useEffect(() => {
     if (!activeSession) {
-      createSession()
+      // Use setTimeout to defer state update until after render
+      setTimeout(() => {
+        createSession()
+      }, 0)
       return
     }
     setSessionId(activeSession.sessionId)
     setHistory(activeSession.history)
     setSuggestions(activeSession.suggestions)
-  }, [activeSession, createSession])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSession])
 
   const sendMessage = async (text?: string, files?: Array<{ name: string; content: string }>) => {
     const messageText = text || message.trim()
@@ -159,20 +158,6 @@ export function useChat() {
     }
   }
 
-  const resetSession = () => {
-    setSessionId(undefined)
-    setHistory([])
-    setSuggestions(undefined)
-    setAlert(null)
-    setMessage('')
-    updateActiveSession({
-      sessionId: undefined,
-      history: [],
-      suggestions: undefined,
-      summary: undefined,
-    })
-  }
-
   return {
     sessionId,
     message,
@@ -185,7 +170,6 @@ export function useChat() {
     setAlert,
     messagesEndRef,
     sendMessage,
-    resetSession,
   }
 }
 
