@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -40,9 +41,21 @@ load_dotenv()
 
 app = FastAPI(title="MRT Review Agent", version="1.0.0")
 
+# CORS configuration
+# Allow origins from environment variable, or default to allow all origins
+# Format: comma-separated list, e.g., "http://localhost:5173,http://10.150.117.242:56906"
+cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if cors_origins_env:
+    # Parse comma-separated origins from environment variable
+    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+else:
+    # Default: allow all origins (for development/testing)
+    # In production, you should set CORS_ALLOWED_ORIGINS environment variable
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['http://localhost:5173', 'http://127.0.0.1:5173'],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
