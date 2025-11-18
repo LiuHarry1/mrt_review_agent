@@ -63,8 +63,8 @@ export function useChat() {
     const userMessageContent =
       messageText || (files && files.length > 0 ? files.map((f) => `[文件: ${f.name}]`).join(', ') : '')
 
-    const currentHistory = userMessageContent
-      ? [...history, { role: 'user', content: messageText || userMessageContent }]
+    const currentHistory: ChatResponse['history'] = userMessageContent
+      ? [...history, { role: 'user' as const, content: messageText || userMessageContent }]
       : history
 
     if (userMessageContent) {
@@ -83,7 +83,7 @@ export function useChat() {
 
     let assistantMessageIndex = -1
     if (userMessageContent) {
-      const updatedHistory = [...currentHistory, { role: 'assistant', content: '' }]
+      const updatedHistory: ChatResponse['history'] = [...currentHistory, { role: 'assistant' as const, content: '' }]
       assistantMessageIndex = updatedHistory.length - 1
       setHistory(updatedHistory)
       updateActiveSession({ history: updatedHistory })
@@ -95,7 +95,7 @@ export function useChat() {
         message: messageText || undefined,
         files,
         messages: currentHistory.map((turn) => ({
-          role: turn.role,
+          role: turn.role as string,
           content: turn.content,
         })),
       }
@@ -108,14 +108,14 @@ export function useChat() {
         (chunk: string) => {
           accumulatedContent += chunk
           setHistory((prev) => {
-            const updated = [...prev]
+            const updated: ChatResponse['history'] = [...prev]
             if (assistantMessageIndex >= 0 && assistantMessageIndex < updated.length) {
               updated[assistantMessageIndex] = {
-                role: 'assistant',
+                role: 'assistant' as const,
                 content: accumulatedContent,
               }
             } else if (assistantMessageIndex < 0 && accumulatedContent) {
-              updated.push({ role: 'assistant', content: accumulatedContent })
+              updated.push({ role: 'assistant' as const, content: accumulatedContent })
               assistantMessageIndex = updated.length - 1
             }
             updateActiveSession({ history: updated })
@@ -140,7 +140,7 @@ export function useChat() {
       )
 
       if (accumulatedContent && assistantMessageIndex >= 0) {
-        const finalHistory = [...currentHistory, { role: 'assistant', content: accumulatedContent }]
+        const finalHistory: ChatResponse['history'] = [...currentHistory, { role: 'assistant' as const, content: accumulatedContent }]
         updateActiveSession({
           history: finalHistory,
           suggestions: undefined,

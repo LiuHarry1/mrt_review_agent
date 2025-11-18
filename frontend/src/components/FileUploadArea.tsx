@@ -11,13 +11,13 @@ interface FileUploadAreaProps {
 }
 
 export function FileUploadArea({
-  uploadedFiles,
+  uploadedFiles: _uploadedFiles,
   dragOver,
   onDragOver,
   onDragLeave,
   onDrop,
   onFileSelect,
-  onRemoveFile,
+  onRemoveFile: _onRemoveFile,
   fileInputRef,
   children,
 }: FileUploadAreaProps) {
