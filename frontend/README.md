@@ -1,4 +1,35 @@
-# React + TypeScript + Vite
+# MRT Review Agent - Frontend
+
+React + TypeScript + Vite 前端应用
+
+## Docker 构建和运行
+
+### 构建 Docker 镜像
+
+在构建时，通过 `--build-arg` 参数配置后端 API URL：
+
+```bash
+# 构建镜像，配置后端 URL
+docker build --build-arg VITE_API_BASE_URL=http://10.150.117.242:32513 -t mrt-review-frontend .
+
+# 或者使用默认的 localhost:8000
+docker build -t mrt-review-frontend .
+```
+
+### 运行容器
+
+```bash
+# 运行前端容器（映射到 3000 端口）
+docker run -d -p 3000:80 --name mrt-review-frontend mrt-review-frontend
+```
+
+访问 `http://localhost:3000` 即可使用前端应用。
+
+### 使用 docker-compose
+
+你也可以在项目根目录创建或更新 `docker-compose.yml` 来同时运行前端和后端。
+
+## 开发环境
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
