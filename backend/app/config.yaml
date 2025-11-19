@@ -1,7 +1,9 @@
 llm:
-  provider: qwen
+  #provider: qwen
+  provider: ollama
   model: qwen-plus
   azure_model: gpt-4
+  ollama_model: llama3.1:8b
   timeout: 60.0
   system_prompt_template: 'You are an expert software test reviewer specializing in
     manual regression test (MRT) case review.

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .provider import LLMProvider, BaseLLMClient, QwenClient, AzureOpenAIClient, LLMError
+from .provider import LLMProvider, BaseLLMClient, QwenClient, AzureOpenAIClient, OllamaClient, LLMError
 
 
 class LLMClientFactory:
@@ -46,6 +46,8 @@ class LLMClientFactory:
             return QwenClient(api_key=api_key, config=config)
         elif provider == LLMProvider.AZURE_OPENAI:
             return AzureOpenAIClient(api_key=api_key, config=config)
+        elif provider == LLMProvider.OLLAMA:
+            return OllamaClient(api_key=api_key, config=config)
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 

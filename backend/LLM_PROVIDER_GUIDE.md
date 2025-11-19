@@ -6,6 +6,7 @@
 
 1. **Qwen (Alibaba DashScope)** - 默认提供商
 2. **Azure OpenAI** - Microsoft Azure OpenAI Service
+3. **Ollama** - Ollama 本地部署（支持任何 Ollama 模型）
 
 ## 配置方式
 
@@ -13,12 +14,13 @@
 
 ```yaml
 llm:
-  # 选择提供商: qwen 或 azure_openai
-  provider: qwen  # 或 azure_openai
+  # 选择提供商: qwen, azure_openai 或 ollama
+  provider: qwen  # 或 azure_openai, ollama
   
   # 模型配置
-  model: qwen-plus  # Qwen 提供商使用的模型
+  model: qwen-plus  # Qwen 提供商使用的模型，或 Ollama 使用的模型
   azure_model: gpt-4  # Azure OpenAI 提供商使用的部署名称
+  # ollama_model: qwen2.5:32b  # 可选：Ollama 专用模型配置（如果设置，会优先使用）
   
   # 请求超时（秒）
   timeout: 60.0
@@ -42,6 +44,26 @@ export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
 export AZURE_OPENAI_API_VERSION="2024-02-15-preview"  # 可选，默认值
 ```
 
+#### Ollama 配置
+
+```bash
+# Ollama 基础 URL（可选，默认：http://localhost:11434）
+export OLLAMA_BASE_URL="http://localhost:11434"
+
+# API Key（可选，Ollama 通常不需要 API Key）
+export OLLAMA_API_KEY="your-api-key-here"  # 可选
+```
+
+**注意**：
+- 确保 Ollama 服务正在运行（默认地址：`http://localhost:11434`）
+- 确保已安装并拉取了所需的模型，例如：
+  - `ollama pull qwen2.5:32b` - Qwen2.5 32B 模型
+  - `ollama pull llama2` - Llama2 模型
+  - `ollama pull mistral` - Mistral 模型
+  - 等等...
+- 在 `config.yaml` 中通过 `model` 或 `ollama_model` 字段指定要使用的模型
+- 如果 Ollama 运行在其他地址或端口，请设置 `OLLAMA_BASE_URL` 环境变量
+
 ## 切换提供商
 
 ### 方法 1: 修改 config.yaml
@@ -50,27 +72,29 @@ export AZURE_OPENAI_API_VERSION="2024-02-15-preview"  # 可选，默认值
 2. 修改 `llm.provider` 字段：
    ```yaml
    llm:
-     provider: azure_openai  # 切换到 Azure OpenAI
-     model: qwen-plus
-     azure_model: gpt-4  # Azure OpenAI 使用的部署名称
+     provider: ollama  # 切换到 Ollama
+     model: qwen2.5:32b  # 指定要使用的 Ollama 模型
+     # 或者使用 ollama_model 字段（优先级更高）
+     # ollama_model: qwen2.5:32b
    ```
-3. 重启应用，配置会自动生效
+3. 确保 Ollama 服务正在运行，并且已拉取指定的模型
+4. 重启应用，配置会自动生效
 
 ### 方法 2: 程序化切换
 
 ```python
 from app.llm.factory import LLMClientFactory
-from app.llm.providers import LLMProvider
+from app.llm.provider import LLMProvider
 
 # 创建指定提供商的客户端
 qwen_client = LLMClientFactory.create_client(LLMProvider.QWEN)
 azure_client = LLMClientFactory.create_client(LLMProvider.AZURE_OPENAI)
+ollama_client = LLMClientFactory.create_client(LLMProvider.OLLAMA)
 
 # 使用客户端
-from app.llm import CompletionClient, ChatbotClient
+from app.llm import LLMClient
 
-completion = CompletionClient(provider_client=qwen_client)
-chatbot = ChatbotClient(provider_client=azure_client)
+llm = LLMClient(provider_client=qwen_client)
 ```
 
 ## 架构说明
@@ -96,16 +120,18 @@ chatbot = ChatbotClient(provider_client=azure_client)
 │    BaseLLMClient (抽象基类)          │
 │  - QwenClient (DashScope)           │
 │  - AzureOpenAIClient                │
+│  - OllamaClient                     │
 │  - 统一的 Provider 接口              │
 └─────────────────────────────────────┘
 ```
 
 ### 关键组件
 
-1. **providers.py**: 定义 Provider 实现
+1. **provider.py**: 定义 Provider 实现
    - `BaseLLMClient`: 抽象基类
    - `QwenClient`: DashScope/Qwen 实现
    - `AzureOpenAIClient`: Azure OpenAI 实现
+   - `OllamaClient`: Ollama 实现（支持任何 Ollama 模型）
    - `LLMProvider`: 提供商枚举
 
 2. **factory.py**: 工厂类
@@ -124,7 +150,7 @@ chatbot = ChatbotClient(provider_client=azure_client)
 
 如果需要添加新的提供商（例如 OpenAI、Claude 等），只需：
 
-1. 在 `providers.py` 中添加新的 Provider 类：
+1. 在 `provider.py` 中添加新的 Provider 类：
    ```python
    class NewProviderClient(BaseLLMClient):
        def _get_api_key(self) -> Optional[str]:
@@ -183,7 +209,7 @@ python test_llm_connectivity.py
 ```python
 # 测试 Qwen 提供商
 from app.llm.factory import LLMClientFactory
-from app.llm.providers import LLMProvider
+from app.llm.provider import LLMProvider
 
 client = LLMClientFactory.create_client(LLMProvider.QWEN)
 print(f"Provider: {type(client).__name__}")
@@ -195,13 +221,18 @@ azure_client = LLMClientFactory.create_client(LLMProvider.AZURE_OPENAI)
 print(f"Provider: {type(azure_client).__name__}")
 print(f"Model: {azure_client.model}")
 
-# 使用测试函数
-from test_llm_connectivity import test_provider
+# 测试 Ollama 提供商
+ollama_client = LLMClientFactory.create_client(LLMProvider.OLLAMA)
+print(f"Provider: {type(ollama_client).__name__}")
+print(f"Model: {ollama_client.model}")
+print(f"Base URL: {ollama_client._get_base_url()}")
 
-result = test_provider(LLMProvider.QWEN, "Qwen")
-print(f"Status: {result['status']}")
-if result['status'] == 'success':
-    print(f"Response: {result['response']}")
+# 使用测试函数（如果存在）
+# from test_llm_connectivity import test_provider
+# result = test_provider(LLMProvider.QWEN, "Qwen")
+# print(f"Status: {result['status']}")
+# if result['status'] == 'success':
+#     print(f"Response: {result['response']}")
 ```
 
 ## 向后兼容性
