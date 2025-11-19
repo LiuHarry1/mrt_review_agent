@@ -17,6 +17,7 @@ if str(_backend_dir) not in sys.path:
 
 # Use absolute imports for consistency
 from app.api import (
+    admin_router,
     chat_router,
     common_router,
     review_router,
@@ -72,6 +73,7 @@ setup_review_routes(review_service=review_service)
 
 # Register routers
 app.include_router(common_router)
+app.include_router(admin_router, prefix="/api/admin", tags=["admin"])
 app.include_router(review_router)
 app.include_router(chat_router)
 

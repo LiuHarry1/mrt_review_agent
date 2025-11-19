@@ -3,9 +3,9 @@ import { useChatSessions } from '../hooks/useChatSessions'
 
 interface LayoutProps {
   sidebarVisible: boolean
-  activeTab: 'review' | 'chat'
+  activeTab: 'review' | 'chat' | 'admin'
   onSidebarToggle: () => void
-  onTabChange: (tab: 'review' | 'chat') => void
+  onTabChange: (tab: 'review' | 'chat' | 'admin') => void
   children: React.ReactNode
 }
 
@@ -176,6 +176,30 @@ export function Layout({
                 </svg>
               </span>
               <span>Single-Pass Review</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className={`nav-item ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => onTabChange('admin')}
+          >
+            <span className="nav-text">
+              <span className="nav-icon">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
+                </svg>
+              </span>
+              <span>Admin Settings</span>
             </span>
           </button>
         </nav>

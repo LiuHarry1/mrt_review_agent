@@ -99,6 +99,48 @@ class Config:
         self._config = existing_config
         self._default_checklist = None  # Reset cache
 
+    def save_llm_config(self, provider: str, model: str) -> None:
+        """Save LLM provider and model to configuration file."""
+        config_file = Path(self.config_path)
+        
+        # Load existing config to preserve other settings
+        existing_config = self._config.copy()
+        
+        # Update LLM provider and model
+        if "llm" not in existing_config:
+            existing_config["llm"] = {}
+        existing_config["llm"]["provider"] = provider
+        
+        # Update model based on provider
+        if provider == "ollama":
+            existing_config["llm"]["ollama_model"] = model
+        elif provider == "azure_openai":
+            existing_config["llm"]["azure_model"] = model
+        else:
+            existing_config["llm"]["model"] = model
+        
+        # Write back to file
+        with open(config_file, "w", encoding="utf-8") as f:
+            yaml.dump(existing_config, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        
+        # Reload config
+        self._config = existing_config
+
+    @property
+    def llm_provider(self) -> str:
+        """Get LLM provider name."""
+        return self._config.get("llm", {}).get("provider", "qwen")
+
+    @property
+    def llm_azure_model(self) -> str:
+        """Get Azure OpenAI model name."""
+        return self._config.get("llm", {}).get("azure_model", "gpt-4")
+
+    @property
+    def llm_ollama_model(self) -> str:
+        """Get Ollama model name."""
+        return self._config.get("llm", {}).get("ollama_model", "qwen2.5:32b")
+
 
 # Global configuration instance
 _config_instance: Optional[Config] = None

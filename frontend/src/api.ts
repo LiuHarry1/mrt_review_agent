@@ -174,3 +174,75 @@ export async function uploadFile(
   })
 }
 
+// Admin API
+export interface LLMConfigResponse {
+  provider: string
+  model: string
+}
+
+export interface OllamaModelInfo {
+  name: string
+  size?: number
+  modified_at?: string
+}
+
+export interface ModelsResponse {
+  provider: string
+  models: string[]
+  ollama_models?: OllamaModelInfo[]
+}
+
+export interface UpdateLLMConfigRequest {
+  provider: string
+  model: string
+  ollama_url?: string
+}
+
+export interface UpdateLLMConfigResponse {
+  status: string
+  message: string
+  provider: string
+  model: string
+}
+
+export async function getLLMConfig(): Promise<LLMConfigResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/config`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  return handleResponse<LLMConfigResponse>(response)
+}
+
+export async function getAvailableModels(
+  provider?: string,
+  ollamaUrl?: string
+): Promise<ModelsResponse> {
+  const params = new URLSearchParams()
+  if (provider) params.append('provider', provider)
+  if (ollamaUrl) params.append('ollama_url', ollamaUrl)
+  
+  const url = `${API_BASE_URL}/api/admin/models${params.toString() ? `?${params.toString()}` : ''}`
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  return handleResponse<ModelsResponse>(response)
+}
+
+export async function updateLLMConfig(
+  payload: UpdateLLMConfigRequest
+): Promise<UpdateLLMConfigResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/config`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+  return handleResponse<UpdateLLMConfigResponse>(response)
+}
+

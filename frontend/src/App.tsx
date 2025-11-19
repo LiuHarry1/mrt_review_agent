@@ -3,8 +3,9 @@ import './App.css'
 import { Layout } from './components/Layout'
 import { ReviewPage } from './components/ReviewPage'
 import { ChatPage } from './components/ChatPage'
+import { AdminPage } from './components/AdminPage'
 
-type TabKey = 'review' | 'chat'
+type TabKey = 'review' | 'chat' | 'admin'
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('chat')
@@ -27,6 +28,7 @@ function App() {
     >
       {activeTab === 'review' && <ReviewPage />}
       {activeTab === 'chat' && <ChatPage />}
+      {activeTab === 'admin' && <AdminPage />}
     </Layout>
   )
 }

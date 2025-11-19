@@ -129,3 +129,6 @@ uvicorn app.main:app --reload --port 8000
 
 完整的配置示例请参考 `backend/app/config.yaml`。
 
+DASHSCOPE_API_KEY=sk-f256c03643e9491fb1ebc278dd958c2d
+AZURE_OPENAI_API_KEY=sk-8oV6db93aa678ac0b4263f32ef139be5de87c7d259ad6jpR
+AZURE_OPENAI_ENDPOINT=https://api.gptsapi.net/v1

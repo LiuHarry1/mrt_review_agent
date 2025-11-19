@@ -19,16 +19,22 @@ class LLMClient:
         """Initialize LLM client. Uses provider from config if not specified."""
         self._client = provider_client or LLMClientFactory.get_default_client()
         self._config = self._client._config
+    
+    def _get_client(self):
+        """Get provider client, recreating it if needed to use latest config."""
+        # Always get a fresh client to ensure we use the latest config
+        # This allows config updates to take effect without restarting the server
+        return LLMClientFactory.get_default_client()
 
     @property
     def has_api_key(self) -> bool:
         """Check if API key is available."""
-        return self._client.has_api_key
+        return self._get_client().has_api_key
 
     @property
     def model(self) -> str:
         """Get model name."""
-        return self._client.model
+        return self._get_client().model
 
     def review(self, mrt_content: str, software_requirement: Optional[str] = None) -> ReviewResponse:
         """Review MRT content against checklist and software requirement."""
@@ -43,12 +49,13 @@ class LLMClient:
             )
 
         config = get_config()
-        model_name = self._client.model
+        client = self._get_client()
+        model_name = client.model
         mrt_length = len(mrt_content)
         checklist_count = len(config.default_checklist)
         has_requirement = software_requirement is not None and software_requirement.strip() != ""
         
-        logger.info(f"LLM review - Provider: {type(self._client).__name__}, Model: {model_name}, MRT: {mrt_length} chars, Checklist: {checklist_count}, Has requirement: {has_requirement}")
+        logger.info(f"LLM review - Provider: {type(client).__name__}, Model: {model_name}, MRT: {mrt_length} chars, Checklist: {checklist_count}, Has requirement: {has_requirement}")
         start_time = time.time()
 
         # Import here to avoid circular dependency
@@ -69,11 +76,11 @@ class LLMClient:
             logger.info(f"User message preview: {user_message[:300]}...")
             logger.info("-------------  messages end-------------------")  
 
-            payload = self._client._normalize_payload(messages, model=model_name)
+            payload = client._normalize_payload(messages, model=model_name)
             payload["max_tokens"] = 2000
 
-            data = self._client._make_request("chat/completions", payload)
-            raw_content = self._client._extract_response(data)
+            data = client._make_request("chat/completions", payload)
+            raw_content = client._extract_response(data)
             
             elapsed_time = time.time() - start_time
             logger.info(f"LLM review completed - Time: {elapsed_time:.2f}s, Response: {len(raw_content)} chars")
@@ -98,13 +105,14 @@ class LLMClient:
             return
 
         try:
+            client = self._get_client()
             system_msg = {"role": "system", "content": system_prompt or ""}
             all_messages = [system_msg] + messages
             
-            payload = self._client._normalize_payload(all_messages, model=self._client.model)
+            payload = client._normalize_payload(all_messages, model=client.model)
             
             # Make streaming request
-            for chunk in self._client._make_stream_request("chat/completions", payload):
+            for chunk in client._make_stream_request("chat/completions", payload):
                 yield chunk
                 
         except LLMError as exc:
