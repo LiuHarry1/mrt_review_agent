@@ -30,8 +30,12 @@ from app.service.chat import ChatService
 from app.service.review import ReviewService
 
 # Configure logging to output to both console and file
+# Use DEBUG level in development if LOG_LEVEL env var is set to DEBUG
+log_level_env = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = logging.DEBUG if log_level_env == "DEBUG" else logging.INFO
+
 setup_logging(
-    log_level=logging.INFO,
+    log_level=log_level,
     log_dir=str(Path(__file__).parent.parent / "logs"),
     log_file="app.log",
     console_output=True,
@@ -81,12 +85,14 @@ app.include_router(chat_router)
 def main():
     """启动 FastAPI 应用"""
     # 使用导入字符串以支持 reload 功能
+    # Use DEBUG level if LOG_LEVEL env var is set to DEBUG
+    uvicorn_log_level = "debug" if os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG" else "info"
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,
-        log_level="info"
+        log_level=uvicorn_log_level
     )
 
 
