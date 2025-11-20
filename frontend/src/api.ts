@@ -175,9 +175,19 @@ export async function uploadFile(
 }
 
 // Admin API
+export interface ProviderInfo {
+  value: string
+  label: string
+}
+
+export interface ProvidersResponse {
+  providers: ProviderInfo[]
+}
+
 export interface LLMConfigResponse {
   provider: string
   model: string
+  ollama_url?: string
 }
 
 export interface OllamaModelInfo {
@@ -203,6 +213,16 @@ export interface UpdateLLMConfigResponse {
   message: string
   provider: string
   model: string
+}
+
+export async function getProviders(): Promise<ProvidersResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/providers`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  return handleResponse<ProvidersResponse>(response)
 }
 
 export async function getLLMConfig(): Promise<LLMConfigResponse> {

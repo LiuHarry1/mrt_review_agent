@@ -15,10 +15,22 @@ from ..utils.exceptions import format_error_message
 router = APIRouter()
 
 
+class ProviderInfo(BaseModel):
+    """Provider information."""
+    value: str = Field(..., description="Provider identifier")
+    label: str = Field(..., description="Provider display name")
+
+
+class ProvidersResponse(BaseModel):
+    """Response model for available providers."""
+    providers: List[ProviderInfo]
+
+
 class LLMConfigResponse(BaseModel):
     """Response model for LLM configuration."""
     provider: str = Field(..., description="Current LLM provider")
     model: str = Field(..., description="Current model name")
+    ollama_url: Optional[str] = Field(None, description="Ollama base URL (if provider is ollama)")
 
 
 class LLMConfigUpdateRequest(BaseModel):
@@ -42,6 +54,17 @@ class ModelsResponse(BaseModel):
     ollama_models: Optional[List[OllamaModelInfo]] = None
 
 
+@router.get("/providers", response_model=ProvidersResponse)
+def get_providers() -> ProvidersResponse:
+    """Get list of available LLM providers."""
+    providers = [
+        ProviderInfo(value="qwen", label="Qwen (Alibaba DashScope)"),
+        ProviderInfo(value="azure_openai", label="Azure OpenAI"),
+        ProviderInfo(value="ollama", label="Ollama"),
+    ]
+    return ProvidersResponse(providers=providers)
+
+
 @router.get("/config", response_model=LLMConfigResponse)
 def get_llm_config() -> LLMConfigResponse:
     """Get current LLM configuration."""
@@ -57,7 +80,12 @@ def get_llm_config() -> LLMConfigResponse:
         else:
             model = config.llm_model
         
-        return LLMConfigResponse(provider=provider, model=model)
+        # Get Ollama URL from environment or use default
+        ollama_url = None
+        if provider == "ollama":
+            ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        
+        return LLMConfigResponse(provider=provider, model=model, ollama_url=ollama_url)
     except Exception as exc:
         error_msg = format_error_message(exc, "Failed to get LLM configuration")
         raise HTTPException(status_code=500, detail=error_msg) from exc

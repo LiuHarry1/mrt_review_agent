@@ -1,37 +1,21 @@
 import { useState, useEffect } from 'react'
-import { getLLMConfig, getAvailableModels, updateLLMConfig } from '../api'
+import { getProviders, getLLMConfig, getAvailableModels, updateLLMConfig, type ProviderInfo } from '../api'
 import { Alert } from './Alert'
 
-const PROVIDERS = [
-  { value: 'qwen', label: 'Qwen (Alibaba DashScope)' },
-  { value: 'azure_openai', label: 'Azure OpenAI' },
-  { value: 'ollama', label: 'Ollama' },
-]
-
-const QWEN_MODELS = [
-  'qwen-plus',
-  'qwen-max'
-]
-
-const AZURE_MODELS = [
-  'gpt-4',
-  'gpt-4-turbo',
-  'gpt-4-32k',
-  'gpt-3.5-turbo',
-  'gpt-35-turbo',
-]
-
 export function AdminPage() {
+  const [providers, setProviders] = useState<ProviderInfo[]>([])
   const [provider, setProvider] = useState<string>('')
   const [model, setModel] = useState<string>('')
   const [ollamaUrl, setOllamaUrl] = useState<string>('http://localhost:11434')
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingProviders, setLoadingProviders] = useState(false)
   const [loadingModels, setLoadingModels] = useState(false)
   const [alert, setAlert] = useState<{ type: 'error' | 'success'; message: string } | null>(null)
 
-  // Load current configuration
+  // Load providers and current configuration
   useEffect(() => {
+    loadProviders()
     loadConfig()
   }, [])
 
@@ -42,6 +26,21 @@ export function AdminPage() {
     }
   }, [provider, ollamaUrl])
 
+  const loadProviders = async () => {
+    try {
+      setLoadingProviders(true)
+      const response = await getProviders()
+      setProviders(response.providers)
+    } catch (error) {
+      setAlert({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to load providers',
+      })
+    } finally {
+      setLoadingProviders(false)
+    }
+  }
+
   const loadConfig = async () => {
     try {
       setLoading(true)
@@ -49,9 +48,9 @@ export function AdminPage() {
       setProvider(config.provider)
       setModel(config.model)
       
-      // Set default Ollama URL if not set
-      if (config.provider === 'ollama' && !ollamaUrl) {
-        setOllamaUrl('http://localhost:11434')
+      // Set Ollama URL from config or use default
+      if (config.provider === 'ollama') {
+        setOllamaUrl(config.ollama_url || 'http://localhost:11434')
       }
     } catch (error) {
       setAlert({
@@ -69,39 +68,22 @@ export function AdminPage() {
     try {
       setLoadingModels(true)
       
-      if (provider === 'ollama') {
-        // For Ollama, fetch from API
-        const response = await getAvailableModels(provider, ollamaUrl)
-        setAvailableModels(response.models || [])
-        
-        // If current model is not in the list, keep it
-        if (model && !response.models.includes(model)) {
-          // Keep current model
-        } else if (response.models.length > 0 && !model) {
-          setModel(response.models[0])
-        }
-      } else if (provider === 'qwen') {
-        setAvailableModels(QWEN_MODELS)
-        if (!model || !QWEN_MODELS.includes(model)) {
-          setModel(QWEN_MODELS[0])
-        }
-      } else if (provider === 'azure_openai') {
-        setAvailableModels(AZURE_MODELS)
-        if (!model || !AZURE_MODELS.includes(model)) {
-          setModel(AZURE_MODELS[0])
-        }
+      // Fetch models from backend API
+      const response = await getAvailableModels(provider, provider === 'ollama' ? ollamaUrl : undefined)
+      setAvailableModels(response.models || [])
+      
+      // If current model is not in the list, keep it
+      if (model && response.models && !response.models.includes(model)) {
+        // Keep current model
+      } else if (response.models && response.models.length > 0 && !model) {
+        setModel(response.models[0])
       }
     } catch (error) {
       setAlert({
         type: 'error',
         message: error instanceof Error ? error.message : 'Failed to load available models',
       })
-      // Set default models for non-Ollama providers
-      if (provider === 'qwen') {
-        setAvailableModels(QWEN_MODELS)
-      } else if (provider === 'azure_openai') {
-        setAvailableModels(AZURE_MODELS)
-      }
+      setAvailableModels([])
     } finally {
       setLoadingModels(false)
     }
@@ -169,11 +151,11 @@ export function AdminPage() {
               id="provider"
               value={provider}
               onChange={(e) => handleProviderChange(e.target.value)}
-              disabled={loading}
+              disabled={loading || loadingProviders}
               className="form-select"
             >
               <option value="">Select a provider</option>
-              {PROVIDERS.map((p) => (
+              {providers.map((p) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
                 </option>
@@ -189,7 +171,7 @@ export function AdminPage() {
                 type="text"
                 value={ollamaUrl}
                 onChange={(e) => handleOllamaUrlChange(e.target.value)}
-                placeholder="http://localhost:11434"
+                placeholder={ollamaUrl || 'http://localhost:11434'}
                 disabled={loading}
                 className="form-input"
               />

@@ -75,6 +75,28 @@ export function Layout({
           )}
         </div>
         <div className="top-bar-right">
+          <button
+            type="button"
+            className={`settings-btn-top ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => onTabChange('admin')}
+            data-tooltip="Admin Settings"
+            aria-label="Admin Settings"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
+            </svg>
+          </button>
           <div className="user-info">
             <div className="user-avatar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -176,30 +198,6 @@ export function Layout({
                 </svg>
               </span>
               <span>Single-Pass Review</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className={`nav-item ${activeTab === 'admin' ? 'active' : ''}`}
-            onClick={() => onTabChange('admin')}
-          >
-            <span className="nav-text">
-              <span className="nav-icon">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
-                </svg>
-              </span>
-              <span>Admin Settings</span>
             </span>
           </button>
         </nav>
