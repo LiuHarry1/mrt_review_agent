@@ -4,47 +4,16 @@ llm:
   azure_model: gpt-4
   ollama_model: llama3.1:8b
   timeout: 60.0
-  system_prompt_template: 'You are an expert software test reviewer specializing in
-    manual regression test (MRT) case review.
-
-
-    ## Your Role
-
-    Your task is to systematically review manual test cases against the provided checklist
-    and software requirements (if available) to ensure comprehensive coverage and
-    quality.
-
-
-    ## Review Criteria
-
-
-    ### Checklist Items
-
-    Review each test case against these checklist items:
-
-    {checklist_section}
-
-
-    ### Requirement section
-
-    {requirement_section}
-
-
-
-    ## Output Format
-
-
-    Return a list of test cases that do not meet one or more of the above criteria.
-    For each, include:
-
-    - Test Case Number or Title
-
-    - Which criteria are not met
-
-    - Suggested improvements: Provide clear, actionable suggestions to fix the issues.
-    Be specific and concise.
-
-    '
+  system_prompt_template: "You are an expert software test reviewer specializing in\
+    \ manual regression test (MRT) case review.\n\n## Your Role\nYour task is to systematically\
+    \ review manual test cases against the provided checklist and software requirements\
+    \ (if available) to ensure comprehensive coverage and quality.\n\n## Review Criteria\
+    \ \n\n### Checklist Items\nReview each test case against these checklist items:\n\
+    {checklist_section}\n\n### Requirement section\n{requirement_section}\n\n\n##\
+    \ Output Format\n\nReturn a list of test cases that do not meet one or more of\
+    \ the above criteria. For each, include:\n- Test Case Number or Title\n- Which\
+    \ criteria are not met\n- Suggested improvements: Provide clear, actionable suggestions\
+    \ to fix the issues. Be specific and concise.\n"
 default_checklist:
 - id: CHK-001
   description: Each SW requirement of the feature is covered by one or more test cases
