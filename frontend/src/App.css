@@ -205,7 +205,7 @@ body {
   top: 0;
   z-index: 900; /* above main content and top bar, below modal */
   transition: transform 0.3s ease;
-  overflow-y: auto;
+  overflow: hidden; /* Prevent sidebar-level scrolling */
 }
 
 .sidebar.visible {
@@ -373,6 +373,10 @@ body {
   padding: 0 1rem 1rem;
   border-top: 1px solid var(--border-color);
   margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* Allow flex child to shrink */
 }
 
 .sidebar-sessions-header {
@@ -419,8 +423,34 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  max-height: 260px;
+  flex: 1;
+  min-height: 0; /* Allow flex child to shrink */
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for sidebar sessions list */
+.sidebar-sessions-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-sessions-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-sessions-list::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 3px;
+}
+
+.sidebar-sessions-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Firefox scrollbar */
+.sidebar-sessions-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
 }
 
 .sidebar-sessions-empty {

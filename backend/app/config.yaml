@@ -1,5 +1,5 @@
 llm:
-  provider: azure_openai
+  provider: qwen
   model: qwen-plus
   azure_model: gpt-4
   ollama_model: llama3.1:8b
