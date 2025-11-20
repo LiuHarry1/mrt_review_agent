@@ -73,6 +73,10 @@ def setup_logging(
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
     
+    # Suppress watchfiles info logs (used by uvicorn reload)
+    watchfiles_logger = logging.getLogger("watchfiles")
+    watchfiles_logger.setLevel(logging.WARNING)
+    
     # Mark as configured
     _logging_configured = True
     
